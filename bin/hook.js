@@ -72,6 +72,14 @@ process.stdin.on("end", () => {
   const ctx = (text) =>
     process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: text } }));
 
+  if (event === "SubagentStart") {
+    let extra = " You share this session's budget umbrella — pace accordingly.";
+    if (overall >= LOCK) extra = "\n" + lockMsg;
+    else if (overall >= WRAP) extra = "\n⛳ Landing zone. " + landMsg;
+    ctx(summary + extra);
+    return;
+  }
+
   if (event === "UserPromptSubmit") {
     let extra = " Pace to finish within budget.";
     if (overall >= LOCK) extra = "\n" + lockMsg;

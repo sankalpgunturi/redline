@@ -27,39 +27,37 @@ function writeJSON(p, obj) {
   fs.writeFileSync(p, JSON.stringify(obj, null, 2));
 }
 
-// Sum tokens billed across all assistant turns in a transcript .jsonl.
-// ponytail: O(n) scan of the file per call; transcripts are small enough that
-// this is fine. Cache by mtime if a session ever gets huge.
-function sumTranscriptTokens(transcriptPath) {
-  if (!transcriptPath) return 0;
-  let total = 0;
-  let data;
-  try {
-    data = fs.readFileSync(transcriptPath, "utf8");
-  } catch {
-    return 0;
-  }
+function sumFile(p) {
+  let total = 0, data;
+  try { data = fs.readFileSync(p, "utf8"); } catch { return 0; }
   for (const line of data.split("\n")) {
     if (!line.trim()) continue;
     let e;
-    try {
-      e = JSON.parse(line);
-    } catch {
-      continue;
-    }
+    try { e = JSON.parse(line); } catch { continue; }
     const u = e.usage || (e.message && e.message.usage);
     if (!u) continue;
-    total +=
-      (u.input_tokens || 0) +
-      (u.output_tokens || 0) +
-      (u.cache_creation_input_tokens || 0) +
-      (u.cache_read_input_tokens || 0);
+    total += (u.input_tokens || 0) + (u.output_tokens || 0) +
+             (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
   }
   return total;
 }
 
-// Given a config + live readings, return the consumed fraction (0..1+) per
-// configured dimension and the overall (max) fraction.
+// Sum tokens billed across the whole SESSION — main transcript plus every fanned
+// subagent transcript. Subagents share the session's budget umbrella, and their
+// usage lives in <session-id>/subagents/agent-*.jsonl (a sibling of the main file).
+// ponytail: O(total transcript size) per call; fine for normal sessions.
+function sumTranscriptTokens(transcriptPath) {
+  if (!transcriptPath) return 0;
+  let total = sumFile(transcriptPath);
+  const subDir = transcriptPath.replace(/\.jsonl$/, "") + "/subagents";
+  try {
+    for (const f of fs.readdirSync(subDir)) {
+      if (f.endsWith(".jsonl")) total += sumFile(path.join(subDir, f));
+    }
+  } catch {}
+  return total;
+}
+
 function fractions(cfg, now, { costUsd = 0, tokens = 0, planNow = null, baselinePlan = null } = {}) {
   const f = {};
   if (cfg.duration_sec) f.time = (now - cfg.set_at) / cfg.duration_sec;
