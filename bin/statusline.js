@@ -69,6 +69,7 @@ process.stdin.on("end", () => {
     ts: now, cost_usd: costUsd, tokens: tokensUsed,
     plan_now: planNow, baseline_plan: baselinePlan,
     f, overall, last_threshold: prevState.last_threshold || 0,
+    peak: Math.max(prevState.peak || 0, overall),
   });
 
   const segs = [];

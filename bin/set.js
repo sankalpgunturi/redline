@@ -25,6 +25,8 @@ const tokens = argStr.split(/\s+/).filter(Boolean);
 
 function clear() {
   if (!pending) {
+    const old = lib.readJSON(lib.cfgPath(sessionId));
+    if (old) lib.retire(old, lib.readJSON(lib.statePath(sessionId)) || {}, Math.floor(Date.now() / 1000), "off");
     try { fs.rmSync(lib.cfgPath(sessionId)); } catch {}
     try { fs.rmSync(lib.statePath(sessionId)); } catch {}
   }
@@ -79,6 +81,10 @@ if (!cfg.duration_sec && !cfg.dollars && !cfg.tokens && cfg.plan_pct == null) {
   process.exit(0);
 }
 
+if (!pending) {
+  const old = lib.readJSON(lib.cfgPath(sessionId));
+  if (old) lib.retire(old, lib.readJSON(lib.statePath(sessionId)) || {}, Math.floor(Date.now() / 1000), "reset");
+}
 cfg.session_id = pending ? null : sessionId;
 lib.writeJSON(pending ? lib.pendingPath() : lib.cfgPath(sessionId), cfg);
 if (!pending) { try { fs.rmSync(lib.statePath(sessionId)); } catch {} } // reset baselines
@@ -93,9 +99,16 @@ if (cfg.plan_pct != null) parts.push(cfg.plan_pct + "% of " + (wantSevenDay ? "7
 console.log(
 `✅ redline budget set for this session: ${parts.join(" + ")}.
 
-The statusline shows live burn-down. Treat this as a soft budget you must land within:
-1. First, briefly state how you'll fit the task in this budget, and what you'll cut first if it gets tight.
-2. Prioritise the core deliverable; defer polish and exploration.
-3. As the budget depletes you'll get reminders — converge, keep tool outputs small, and keep responses terse.
-4. Aim to deliver a working result before the budget runs out, not to stop abruptly when it does.`
+You'll see a budget signal every turn — \`<total_tokens>N tokens left</total_tokens>\` (the
+same signal you natively pace against) plus a \`<redline>\` line with time/$/tier. Treat this
+as a soft budget you must land WITHIN, never exceed:
+
+1. First, give a one-line PLAN that allocates the budget across steps by difficulty, and
+   reserve ~15% to finish (write/verify/summarise). State whether it's feasible in this
+   budget — if not, propose a reduced scope before starting.
+2. Spend budget only on steps that change your next action. Keep tool outputs small.
+3. Follow the tier in the <redline> line: HIGH = explore · MEDIUM = targeted · LOW = ship the
+   minimal result + deliver · RESERVE (90%) = tools lock, finish from what you have.
+4. Deliver a working result BEFORE the budget runs out. Don't run over expecting to wrap up
+   later — at 90% new tool calls are blocked and at 100% new work stops.`
 );

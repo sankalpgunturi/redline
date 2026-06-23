@@ -58,3 +58,22 @@ One budget covers the whole session. Users never set per-subagent budgets.
 - **Wall-clock time is best-effort.** The clock advances while the model generates; the lock can only fire at a tool attempt or turn boundary. On realistic budgets (minutes) checkpoints are frequent enough to land cleanly under; on absurdly tight budgets (seconds, smaller than one turn) the clock can pass the line between checkpoints. A periodic statusline-driven time guard is on the roadmap.
 - **Statusline refresh caps at 1s** — Claude Code re-renders the statusline on events plus a `refreshInterval` whose minimum is 1 second; it cannot tick sub-second. For a smooth ~10×/second display use the `bin/watch.js` companion in a split pane.
 - **Live $/token/plan need an interactive session** — the statusline (the sensor) doesn't render in headless `claude -p`, where only time is live.
+
+## Mirroring Anthropic's `taskBudget`
+
+The Claude Agent SDK has `taskBudget` (alpha): it sends `output_config.task_budget` with a beta header so the **model itself** is made aware of its remaining token budget and paces tool use / wraps up before the limit. The Claude Code **CLI does not expose this** — and Anthropic has little incentive to add a *spend-less* cap (especially a time one). That gap is redline's reason to exist.
+
+We replicate the **client-side** half of the same mechanism (the SDK's internal `totalTokensReminder`): inject a `<total_tokens>N tokens left</total_tokens>` block every turn + after every tool result. The model is **natively tuned to that exact signal**, so emitting it ourselves piggybacks on Anthropic's own budget-pacing training.
+
+Since their signal is tokens-only, redline **translates every budget dimension into a tokens-left figure** using the session's own observed ratios (`$ → tokens` via observed $/token, `time → tokens` via observed tokens/sec burn-rate, `plan% → tokens` via observed tokens/%), and emits the *binding* dimension. This is how a **wall-clock deadline** drives the model's native token-pacing — something Anthropic's budget machinery has no concept of.
+
+Important: `taskBudget` is only the *cooperative* layer ("pace and wrap up") — it's awareness, not a hard cap. redline adds the coercive boundary layer (deny / block / halt) the SDK leaves to `maxBudgetUsd` / `maxTurns`.
+
+## Analytics
+
+Every retiring budget logs one outcome line to `~/.claude/redline/history.jsonl` (append-only, local only, no network) — on `SessionEnd`, `/redline off`, or a new `/redline`. The one metric: **did peak usage stay ≤ 100% (landed) or not.** Record shape: `{budget, peak, final, landed, overshoot_pct, reason}`. View with:
+
+```bash
+node ~/redline/bin/stats.js          # landed-rate dashboard
+node ~/redline/bin/stats.js --json   # raw records
+```

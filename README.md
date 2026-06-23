@@ -12,7 +12,8 @@
   <a href="docs/CONTRIBUTING.md">Contributing</a> ·
   <a href="docs/SECURITY.md">Security</a> ·
   <a href="docs/ARCHITECTURE.md#honest-limits">Limits</a> ·
-  <a href="assets/showcase.html">Animated demo</a>
+  <a href="assets/showcase.html">Animated demo</a> ·
+  <a href="#analytics">Analytics</a>
 </p>
 
 ---
@@ -65,6 +66,19 @@ The statusline refreshes once a second (Claude Code's hard cap). For a smooth, ~
 
 ```bash
 node ~/redline/bin/watch.js      # follows your latest /redline budget
+```
+
+## Analytics
+
+One metric: **did the session land within budget?** Every run logs its outcome locally (no network) — view the landed-rate:
+
+```bash
+node ~/redline/bin/stats.js
+```
+```
+  redline · did it land within budget?
+  ██████████████░░░░░░░░░░  60% landed  (3/5 sessions)
+  landed ≤100%: 3     over budget: 2
 ```
 
 ---

@@ -1,31 +1,49 @@
 #!/usr/bin/env node
 "use strict";
-// redline pacer — enforces a SOFT LANDING that never exceeds the budget.
+// redline pacer + enforcer (CLI v2). Mirrors Anthropic's taskBudget mechanism
+// (which the Claude Code CLI does NOT expose): keep showing the model how much
+// budget is left, in the SAME signal the model is natively tuned to —
+// `<total_tokens>N tokens left</total_tokens>` injected after each tool result and
+// each turn (the client-side `totalTokensReminder` pattern from the Agent SDK).
 //
-// The budget is an inviolable ceiling. The wrap-up costs budget too, so it is
-// paid for from a RESERVE: the agent does real work only up to WRAP, then must
-// deliver; at LOCK new tool calls are DENIED (PreToolUse permissionDecision:deny)
-// so it physically cannot keep burning — it can only write its final answer,
-// which fits in the remaining reserve. Result: lands under budget, gracefully,
-// with no abrupt kill — a hard mid-response stop is deliberately never used.
+// Every budget dimension is translated to a "tokens left" figure via the session's
+// own observed ratios (lib.tokensLeft), so a time/$/plan budget drives the model's
+// native token-pacing too — including TIME, which Anthropic's budget machinery has
+// no concept of.
 //
-// Wired to PreToolUse (enforce), UserPromptSubmit + PostToolUse (pace).
+// taskBudget is only the COOPERATIVE layer ("pace and wrap up"). redline adds the
+// coercive boundary layer Anthropic doesn't bundle:
+//   PreToolUse  : >=LOCK deny tools (graceful) ; >=CEIL clean halt (continue:false)
+//   UserPrompt  : >=CEIL block the new prompt (no new work once spent)
+//   Post/SubStart: inject the ledger (+ one-shot landing alert on crossing)
 
 const lib = require("./lib.js");
 
-const SOFT = [
-  { at: 0.50, msg: "Half the budget is gone. Prioritise the core deliverable and drop optional exploration." },
-  { at: 0.70, msg: "70% of the budget is used. Converge now: finish the essential path, keep tool outputs small (grep narrowly, head/tail large files, avoid re-reading whole files), and keep replies terse." },
-];
-const WRAP = 0.80; // mandatory landing begins: deliver + summarise, no new work
-const LOCK = 0.90; // tool calls denied so the run lands inside the reserve
+const LOW = 0.70, LOCK = 0.90, CEIL = 1.0;
 
-const landMsg =
-  "Stop starting new work. Deliver your final result and a brief summary now, using what you already have. " +
-  "New tool calls will be blocked at the reserve line so the session lands within budget — finish before then.";
-const lockMsg =
-  "🛑 redline reserve reached — tool calls are blocked to keep the session within budget. " +
-  "Do NOT attempt more tools. Write your final answer/summary from what you already have, then stop.";
+function tier(o) {
+  if (o >= CEIL) return { tag: "OVER", line: "Budget spent — stop. Do not start new work; do not run tools." };
+  if (o >= LOCK) return { tag: "RESERVE", line: "Reserve zone: tool calls are LOCKED. Write your final answer/result from what you already have, then stop." };
+  if (o >= LOW)  return { tag: "LOW", line: "Ship the minimal result NOW: stop exploring, drop nice-to-haves, keep tool outputs small (grep narrowly, head/tail, don't re-read whole files), deliver + summarise. If you cannot finish in the remaining budget, say so and cut scope." };
+  if (o >= 0.30) return { tag: "MEDIUM", line: "Targeted work only — spend budget on steps that change your next action; limit exploration." };
+  return { tag: "HIGH", line: "Explore as needed, but keep the budget in view." };
+}
+
+function ledger(cfg, st, now) {
+  const r = { costUsd: st.cost_usd || 0, tokens: st.tokens || 0, planNow: st.plan_now, baselinePlan: st.baseline_plan };
+  const { overall } = lib.fractions(cfg, now, r);
+  const pct = Math.round(overall * 100);
+  const rate = lib.burnRate(st, cfg, now);
+  const dims = [];
+  if (cfg.duration_sec != null) dims.push(`⏱ ${lib.fmtDuration(Math.max(0, cfg.duration_sec - (now - cfg.set_at)))} left` + (rate ? ` (~${lib.fmtTokens(rate)} tok/s)` : ""));
+  if (cfg.dollars != null) dims.push(`$${Math.max(0, cfg.dollars - r.costUsd).toFixed(2)} left`);
+  if (cfg.tokens != null) dims.push(`${lib.fmtTokens(Math.max(0, cfg.tokens - r.tokens))} tok left`);
+  if (cfg.plan_pct != null && r.planNow != null && r.baselinePlan != null) dims.push(`${Math.max(0, cfg.plan_pct - (r.planNow - r.baselinePlan)).toFixed(1)}% plan left`);
+  const t = tier(overall);
+  const sig = lib.tokensLeft(cfg, st, now);
+  const tag = sig != null ? `<total_tokens>${sig} tokens left</total_tokens>\n` : "";
+  return { overall, pct, text: `${tag}<redline> ${pct}% used · tier ${t.tag} · ${dims.join(" · ")}\n  ${t.line}\n</redline>` };
+}
 
 let input = "";
 process.stdin.setEncoding("utf8");
@@ -35,70 +53,62 @@ process.stdin.on("end", () => {
   try { d = JSON.parse(input || "{}"); } catch {}
   const event = d.hook_event_name || "";
   const sessionId = d.session_id || "unknown";
-
   const cfg = lib.readJSON(lib.cfgPath(sessionId));
-  if (!cfg) return; // no budget → silent
+  if (!cfg) return;
 
   const now = Math.floor(Date.now() / 1000);
   const st = lib.readJSON(lib.statePath(sessionId)) || {};
-  const timeFrac = cfg.duration_sec ? (now - cfg.set_at) / cfg.duration_sec : 0;
-  const overall = Math.max(timeFrac, st.overall || 0);
-  const pct = Math.round(overall * 100);
+  const L = ledger(cfg, st, now);
 
-  const left = [];
-  if (cfg.duration_sec) left.push(lib.fmtDuration(Math.max(0, cfg.duration_sec - (now - cfg.set_at))) + " left");
-  if (cfg.dollars) left.push("$" + Math.max(0, cfg.dollars - (st.cost_usd || 0)).toFixed(2) + " left");
-  if (cfg.tokens) left.push(lib.fmtTokens(Math.max(0, cfg.tokens - (st.tokens || 0))) + " tok left");
-  if (cfg.plan_pct != null && st.plan_now != null && st.baseline_plan != null) {
-    left.push(Math.max(0, cfg.plan_pct - (st.plan_now - st.baseline_plan)).toFixed(1) + "% plan left");
+  if (event === "SessionEnd") {
+    lib.retire(cfg, st, now, "session_end");
+    try { require("fs").rmSync(lib.cfgPath(sessionId)); } catch {}
+    try { require("fs").rmSync(lib.statePath(sessionId)); } catch {}
+    return;
   }
-  const summary = `redline: ${pct}% of budget used (${left.join(", ")}).`;
 
-  // ---- Enforcement: deny tools once inside the reserve zone. ----
   if (event === "PreToolUse") {
-    if (overall >= LOCK) {
-      process.stdout.write(JSON.stringify({
-        hookSpecificOutput: {
-          hookEventName: "PreToolUse",
-          permissionDecision: "deny",
-          permissionDecisionReason: `redline: ${pct}% — reserve reached, tools locked to land within budget.`,
-          additionalContext: `${summary}\n${lockMsg}`,
-        },
-      }));
+    if (L.overall >= CEIL) {
+      process.stdout.write(JSON.stringify({ continue: false, stopReason: `redline: budget spent (${L.pct}%). Run /redline to continue.` }));
+      return;
     }
-    return; // below LOCK: allow the tool (no output)
-  }
-
-  const ctx = (text) =>
-    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: text } }));
-
-  if (event === "SubagentStart") {
-    let extra = " You share this session's budget umbrella — pace accordingly.";
-    if (overall >= LOCK) extra = "\n" + lockMsg;
-    else if (overall >= WRAP) extra = "\n⛳ Landing zone. " + landMsg;
-    ctx(summary + extra);
+    if (L.overall >= LOCK) {
+      process.stdout.write(JSON.stringify({ hookSpecificOutput: {
+        hookEventName: "PreToolUse", permissionDecision: "deny",
+        permissionDecisionReason: `redline: ${L.pct}% — reserve reached, tools locked to land within budget.`,
+        additionalContext: `${L.text}\nTool blocked. Write your final answer from what you already have, then stop.`,
+      } }));
+      return;
+    }
     return;
   }
 
   if (event === "UserPromptSubmit") {
-    let extra = " Pace to finish within budget.";
-    if (overall >= LOCK) extra = "\n" + lockMsg;
-    else if (overall >= WRAP) extra = "\n⛳ Landing zone. " + landMsg;
-    ctx(summary + extra);
+    if (L.overall >= CEIL) {
+      process.stdout.write(JSON.stringify({ decision: "block",
+        reason: `🔴 redline: budget spent (${L.pct}%). Run /redline 10m $5 (or /redline off) to continue.` }));
+      return;
+    }
+    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: L.text } }));
+    return;
+  }
+
+  if (event === "SubagentStart") {
+    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "SubagentStart",
+      additionalContext: `${L.text}\nYou share this session's budget umbrella — pace accordingly.` } }));
     return;
   }
 
   if (event === "PostToolUse") {
-    let bucket = 0;
-    for (const s of SOFT) if (overall >= s.at) bucket = Math.round(s.at * 100);
-    if (overall >= WRAP) bucket = Math.round(WRAP * 100);
-    if (bucket <= (st.last_threshold || 0)) return; // only on a NEW threshold
-    lib.writeJSON(lib.statePath(sessionId), { ...st, last_threshold: bucket });
-
-    let msg;
-    if (overall >= WRAP) msg = `⛳ Landing zone (${pct}%). ${landMsg}`;
-    else for (const s of SOFT) if (Math.round(s.at * 100) === bucket) msg = s.msg;
-    if (msg) ctx(`${summary}\n${msg}`);
+    const ns = { ...st, peak: Math.max(st.peak || 0, L.overall) };
+    let extra = "";
+    const crossedLow = L.overall >= LOW ? 70 : 0;
+    if (crossedLow && crossedLow > (st.last_threshold || 0)) {
+      ns.last_threshold = crossedLow;
+      extra = "\n⛳ Entering the landing zone — converge on delivering the result; tools lock at 90%.";
+    }
+    lib.writeJSON(lib.statePath(sessionId), ns);
+    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: L.text + extra } }));
     return;
   }
 });
