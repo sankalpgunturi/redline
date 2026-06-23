@@ -94,10 +94,10 @@ function tick() {
     const leftS = cfg.duration_sec - lib.timeUsedSec(cfg, now, st.turn_start, st.overshoot_sec);
     rows.push(`${col(f.time)}⏱  ${fmtTenths(leftS)} left${C.reset}  ${C.dim}/ ${lib.fmtDuration(cfg.duration_sec)}${C.reset}`);
   }
-  if (cfg.dollars != null) rows.push(`${col(f.cost)}💰 $${(st.cost_usd || 0).toFixed(2)} / $${cfg.dollars.toFixed(2)}${C.reset}`);
-  if (cfg.tokens != null) rows.push(`${col(f.tokens)}🔤 ${lib.fmtTokens(st.tokens || 0)} / ${lib.fmtTokens(cfg.tokens)}${C.reset}`);
+  if (cfg.dollars != null) rows.push(`${col(f.cost)}💰 $${Math.max(0, cfg.dollars - (st.cost_usd || 0)).toFixed(2)} left  ${C.dim}/ $${cfg.dollars.toFixed(2)}${C.reset}`);
+  if (cfg.tokens != null) rows.push(`${col(f.tokens)}🔤 ${lib.fmtTokens(Math.max(0, cfg.tokens - (st.tokens || 0)))} left  ${C.dim}/ ${lib.fmtTokens(cfg.tokens)}${C.reset}`);
   if (cfg.plan_pct != null && st.plan_now != null && st.baseline_plan != null)
-    rows.push(`${col(f.plan)}📊 ${Math.max(0, st.plan_now - st.baseline_plan).toFixed(1)} / ${cfg.plan_pct}% plan${C.reset}`);
+    rows.push(`${col(f.plan)}📊 ${Math.max(0, cfg.plan_pct - (st.plan_now - st.baseline_plan)).toFixed(1)}% plan left${C.reset}`);
 
   const zone = overall >= 0.9 ? `${C.red}LOCK${C.reset}` : overall >= 0.8 ? `${C.red}LANDING${C.reset}`
     : overall >= 0.5 ? `${C.yellow}CRUISE${C.reset}` : `${C.green}GREEN${C.reset}`;

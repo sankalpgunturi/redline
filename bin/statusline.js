@@ -78,14 +78,13 @@ process.stdin.on("end", () => {
     segs.push(`${color(f.time)}⏱ ${lib.fmtDuration(Math.max(0, left))}${C.reset}`);
   }
   if (cfg.dollars != null) {
-    segs.push(`${color(f.cost)}💰 $${costUsd.toFixed(2)}/$${cfg.dollars.toFixed(2)}${C.reset}`);
+    segs.push(`${color(f.cost)}💰 $${Math.max(0, cfg.dollars - costUsd).toFixed(2)} left${C.reset}`);
   }
   if (cfg.tokens != null) {
-    segs.push(`${color(f.tokens)}🔤 ${lib.fmtTokens(tokensUsed)}/${lib.fmtTokens(cfg.tokens)}${C.reset}`);
+    segs.push(`${color(f.tokens)}🔤 ${lib.fmtTokens(Math.max(0, cfg.tokens - tokensUsed))} left${C.reset}`);
   }
   if (cfg.plan_pct != null && planNow != null) {
-    const used = Math.max(0, planNow - baselinePlan);
-    segs.push(`${color(f.plan)}📊 ${used.toFixed(1)}/${cfg.plan_pct}%${C.reset}`);
+    segs.push(`${color(f.plan)}📊 ${Math.max(0, cfg.plan_pct - (planNow - baselinePlan)).toFixed(1)}% left${C.reset}`);
   }
 
   // Tag the bar with the binding gauge when more than one dimension is set,
