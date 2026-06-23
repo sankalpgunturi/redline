@@ -51,13 +51,14 @@
       <a class="btn ghost" href="#install">Install</a>
     </div>
 
-    <div class="demo">
-      <div class="row">
-        <span>redline</span>
-        <div class="barwrap"><div class="bar" id="bar"></div><div class="redmark"></div></div>
-        <span class="pct" id="pct">0%</span>
-      </div>
-      <div class="row" style="margin-top:12px;color:var(--dim)"><span id="fig">⏱ 10:00 left · 💰 $5.00 left</span></div>
+    <div class="demo" style="text-align:center">
+      <svg viewBox="0 0 420 252" width="340" style="max-width:100%">
+        <g id="ticks"></g>
+        <line id="needle" stroke="#f0f6fc" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="210" cy="210" r="11" fill="#f0f6fc"/><circle cx="210" cy="210" r="4.5" fill="#161b22"/>
+        <text id="rpm" x="210" y="150" text-anchor="middle" font-size="40" font-weight="800" fill="#3fb950">0%</text>
+      </svg>
+      <div class="label" id="fig" style="margin-top:0">⏱ 10:00 left · 💰 $5.00 left</div>
       <div class="label">it stays inside the limit you set</div>
     </div>
   </header>
@@ -87,22 +88,18 @@ redline pulse    all active budgets + landed-rate (live)</pre>
 </div>
 
 <script>
-  // Burn-down that sweeps up and decelerates into the landing zone, stopping short of the redline.
-  const bar=document.getElementById('bar'),pct=document.getElementById('pct'),fig=document.getElementById('fig');
-  let t=0;const target=92, dur=2600, start=performance.now();
-  function ease(x){return 1-Math.pow(1-x,3)}
-  function frame(now){
-    const k=Math.min(1,(now-start)/dur);const v=ease(k)*target;
-    bar.style.width=v+'%';pct.textContent=Math.round(v)+'%';
-    const col=v>=90?'#ff4d4d':v>=70?'#d29922':'#3fb950';pct.style.color=col;
-    const left=Math.max(0,10*(1-v/100));const m=Math.floor(left),s=Math.round((left-m)*60).toString().padStart(2,'0');
-    fig.textContent='⏱ '+m+':'+s+' left · 💰 $'+(5*(1-v/100)).toFixed(2)+' left';
-    if(k<1)requestAnimationFrame(frame);
-    else setTimeout(()=>{start2();},1400);
-  }
-  function start2(){const s=performance.now();function f(now){const k=Math.min(1,(now-s)/600);bar.style.width=(92*(1-k))+'%';pct.textContent=Math.round(92*(1-k))+'%';if(k<1)requestAnimationFrame(f);else{performance.now();setTimeout(()=>{location.reload&&restart()},200)}}requestAnimationFrame(f)}
-  function restart(){bar.style.width='0';pct.textContent='0%';const s=performance.now();const ns=s;requestAnimationFrame(function r(now){const k=Math.min(1,(now-ns)/dur);const v=ease(k)*target;bar.style.width=v+'%';pct.textContent=Math.round(v)+'%';const col=v>=90?'#ff4d4d':v>=70?'#d29922':'#3fb950';pct.style.color=col;const left=Math.max(0,10*(1-v/100));const m=Math.floor(left),sec=Math.round((left-m)*60).toString().padStart(2,'0');fig.textContent='⏱ '+m+':'+sec+' left · 💰 $'+(5*(1-v/100)).toFixed(2)+' left';if(k<1)requestAnimationFrame(r);else setTimeout(start2,1400)})}
-  requestAnimationFrame(frame);
+  // Tachometer: the needle revs up and eases to a stop just short of the redline.
+  const cx=210,cy=210,R=170,IN=145,N=25;
+  const ang=f=>Math.PI*(1-f), X=(r,f)=>cx+r*Math.cos(ang(f)), Yc=(r,f)=>cy-r*Math.sin(ang(f));
+  const col=f=>f>=0.8?'#ff4d4d':f>=0.6?'#d29922':'#3fb950';
+  let t='';for(let i=0;i<N;i++){const f=i/(N-1),mj=i%5===0,inn=mj?IN-8:IN+5;t+=`<line x1="${X(R,f)}" y1="${Yc(R,f)}" x2="${X(inn,f)}" y2="${Yc(inn,f)}" stroke="${col(f)}" stroke-width="${mj?5:3}" stroke-linecap="round"/>`;}
+  document.getElementById('ticks').innerHTML=t;
+  const needle=document.getElementById('needle'),rpm=document.getElementById('rpm'),fig=document.getElementById('fig');
+  const target=0.78,dur=2600,ease=x=>1-Math.pow(1-x,3);
+  function setF(f){const nx=X(R-24,f),ny=Yc(R-24,f);needle.setAttribute('x1',cx);needle.setAttribute('y1',cy);needle.setAttribute('x2',nx);needle.setAttribute('y2',ny);rpm.textContent=Math.round(f*100)+'%';rpm.setAttribute('fill',col(f));const left=10*(1-f),m=Math.floor(left),s=Math.round((left-m)*60).toString().padStart(2,'0');fig.textContent='⏱ '+m+':'+s+' left · 💰 $'+(5*(1-f)).toFixed(2)+' left';}
+  function up(){const st=performance.now();function fr(n){const k=Math.min(1,(n-st)/dur);setF(ease(k)*target);if(k<1)requestAnimationFrame(fr);else setTimeout(down,1600);}requestAnimationFrame(fr);}
+  function down(){const st=performance.now();function fr(n){const k=Math.min(1,(n-st)/500);setF(target*(1-k));if(k<1)requestAnimationFrame(fr);else setTimeout(up,500);}requestAnimationFrame(fr);}
+  setF(0);up();
 </script>
 </body>
 </html>

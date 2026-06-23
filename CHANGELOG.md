@@ -2,6 +2,18 @@
 
 All notable changes are documented here. Format: [Keep a Changelog](https://keepachangelog.com).
 
+## [0.1.1] - 2026-06-23
+
+### Changed
+- `dashboard` / `watch` / `stats` consolidated into one **`redline pulse`**: every active budget across your sessions, live, plus how often you stayed on track (`stats` kept as an alias).
+- Banner and website now feature the **tachometer** (the needle revs up and stops just short of the redline).
+- Past a time budget's deadline, only active response time counts as overshoot; idle no longer inflates "over".
+- Statusline and pulse count down (`$1.85 left`); plain copy, no em dashes.
+
+### Fixed
+- `/redline $5` no longer silently cleared the budget (the shell was eating the `$`).
+- Empty `/redline` shows status instead of clearing.
+
 ## [0.1.0] - 2026-06-23
 First public release.
 
