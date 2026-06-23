@@ -41,3 +41,11 @@ render headlessly, so only time is live there — see [Architecture](ARCHITECTUR
 - Tighter wall-clock guarantee (statusline-driven time guard).
 - Configurable reserve / WRAP / LOCK thresholds per budget.
 - Adapters for other harnesses (Codex CLI, Cursor).
+
+## Design philosophy
+
+- **Soft landing, hard ceiling.** Enforce at boundaries (deny tools, block new prompts); never `continue:false` mid-response. An abrupt kill is a worse failure than a small, honest overshoot — don't add hard mid-response kills.
+- **Cooperative first, coercive as backstop.** Show the agent its remaining budget (the native `<total_tokens>` signal); only block when cooperation can't hold the line.
+- **Zero dependencies.** Use the Node that ships with Claude Code. Don't add npm packages.
+- **Local only.** No network, no telemetry by default. Analytics stay on disk.
+- **Honest over impressive.** If a limit can't be guaranteed (wall-clock vs an in-flight response), say so in the docs rather than overclaiming.
