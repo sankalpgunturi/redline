@@ -59,6 +59,14 @@ Restart Claude Code. Backs up your settings, never clobbers an existing statusli
 
 Whichever dimension is closest to its limit drives the bar (tagged with its gauge).
 
+### Watch it live
+
+The statusline refreshes once a second (Claude Code's hard cap). For a smooth, ~10×/second countdown with tenths and a sub-character bar, run the watcher in a split pane next to Claude Code:
+
+```bash
+node ~/redline/bin/watch.js      # follows your latest /redline budget
+```
+
 ---
 
 <p align="center"><sub>MIT © redline contributors · built on Claude Code's native hooks + statusline, zero dependencies</sub></p>

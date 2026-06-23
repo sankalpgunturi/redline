@@ -29,7 +29,7 @@ if (fs.existsSync(SETTINGS)) {
 // Statusline: only set if absent, never clobber an existing one.
 let slNote;
 if (!settings.statusLine) {
-  settings.statusLine = { type: "command", command: statuslineCmd, refreshInterval: 1000 };
+  settings.statusLine = { type: "command", command: statuslineCmd, refreshInterval: 1 };
   slNote = "installed redline statusline.";
 } else if ((settings.statusLine.command || "").includes("redline")) {
   settings.statusLine.command = statuslineCmd; // refresh path
