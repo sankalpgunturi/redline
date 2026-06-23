@@ -2,7 +2,9 @@
 "use strict";
 // redline statusline: the live monitor AND the sensor.
 // - Reads Claude Code's statusline JSON on stdin (has cost + rate_limits).
-// - Renders a one-line burn-down BAR for whatever budget dimensions are set.
+// - Renders ONE burn-down bar for the binding constraint (the dimension closest
+//   to its limit — the one that will stop you first), tagged with which gauge it
+//   is, plus a compact figure per configured dimension.
 // - Writes a state snapshot the hook reads (the hook's stdin lacks cost/rate_limits).
 
 const lib = require("./lib.js");
@@ -12,8 +14,8 @@ const C = {
   green: "\x1b[32m", yellow: "\x1b[33m", red: "\x1b[31m", cyan: "\x1b[36m",
 };
 const color = (frac) => (frac >= 0.9 ? C.bold + C.red : frac >= 0.75 ? C.red : frac >= 0.5 ? C.yellow : C.green);
+const EMOJI = { time: "⏱", cost: "💰", tokens: "🔤", plan: "📊" };
 
-// A drawn burn-down bar: filled blocks = budget consumed.
 function bar(frac, width = 12) {
   const filled = Math.max(0, Math.min(width, Math.round(frac * width)));
   return "█".repeat(filled) + "░".repeat(width - filled);
@@ -33,7 +35,6 @@ process.stdin.on("end", () => {
   const sessionId = d.session_id || "unknown";
   const model = (d.model && d.model.display_name) || "";
 
-  // Load this session's config; adopt a pending budget set before session_id was known.
   let cfg = lib.readJSON(lib.cfgPath(sessionId));
   if (!cfg) {
     const pend = lib.readJSON(lib.pendingPath());
@@ -45,7 +46,6 @@ process.stdin.on("end", () => {
   }
 
   if (!cfg) {
-    // No budget active — stay out of the way, just hint how to start one.
     process.stdout.write(`${C.dim}redline ░░░░░░░░░░░░ no budget · /redline 10m $5${C.reset}` + (model ? `  ${C.dim}${model}${C.reset}` : ""));
     return;
   }
@@ -54,7 +54,6 @@ process.stdin.on("end", () => {
   const costUsd = (d.cost && d.cost.total_cost_usd) || 0;
   const tokensUsed = cfg.tokens ? lib.sumTranscriptTokens(d.transcript_path) : 0;
 
-  // Plan %: capture a baseline on first render, then measure consumption since.
   let baselinePlan = null, planNow = null;
   if (cfg.plan_pct != null) {
     const rl = d.rate_limits && d.rate_limits[cfg.plan_window || "five_hour"];
@@ -65,7 +64,6 @@ process.stdin.on("end", () => {
 
   const { f, overall } = lib.fractions(cfg, now, { costUsd, tokens: tokensUsed, planNow, baselinePlan });
 
-  // Persist snapshot for the hook (preserve last_threshold it owns).
   const prevState = lib.readJSON(lib.statePath(sessionId)) || {};
   lib.writeJSON(lib.statePath(sessionId), {
     ts: now, cost_usd: costUsd, tokens: tokensUsed,
@@ -73,7 +71,6 @@ process.stdin.on("end", () => {
     f, overall, last_threshold: prevState.last_threshold || 0,
   });
 
-  // Render: a big overall bar, then a compact figure per configured dimension.
   const segs = [];
   if (cfg.duration_sec != null) {
     const left = cfg.duration_sec - (now - cfg.set_at);
@@ -90,8 +87,14 @@ process.stdin.on("end", () => {
     segs.push(`${color(f.plan)}📊 ${used.toFixed(1)}/${cfg.plan_pct}%${C.reset}`);
   }
 
+  // Tag the bar with the binding gauge when more than one dimension is set,
+  // so a red bar while one figure still looks cheap isn't a mystery.
+  let driver = null, max = -1;
+  for (const k of Object.keys(f)) if (f[k] > max) { max = f[k]; driver = k; }
+  const tag = Object.keys(f).length > 1 && driver ? EMOJI[driver] + " " : "";
+
   const pct = Math.round(overall * 100);
   const col = color(overall);
-  const head = `${col}${C.bold}redline${C.reset} ${col}${bar(overall)} ${pct}%${C.reset}`;
+  const head = `${col}${C.bold}redline${C.reset} ${col}${tag}${bar(overall)} ${pct}%${C.reset}`;
   process.stdout.write([head, ...segs].join(`${C.dim} · ${C.reset}`));
 });
