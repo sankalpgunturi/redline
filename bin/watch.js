@@ -84,13 +84,14 @@ function tick() {
   const { f, overall } = lib.fractions(cfg, now, {
     costUsd: st.cost_usd || 0, tokens: st.tokens || 0,
     planNow: st.plan_now, baselinePlan: st.baseline_plan,
+    turnStart: st.turn_start, overshootSec: st.overshoot_sec,
   });
   const pct = Math.round(overall * 100);
   const c = col(overall);
 
   const rows = [];
   if (cfg.duration_sec != null) {
-    const leftS = cfg.duration_sec - (now - cfg.set_at);
+    const leftS = cfg.duration_sec - lib.timeUsedSec(cfg, now, st.turn_start, st.overshoot_sec);
     rows.push(`${col(f.time)}⏱  ${fmtTenths(leftS)} left${C.reset}  ${C.dim}/ ${lib.fmtDuration(cfg.duration_sec)}${C.reset}`);
   }
   if (cfg.dollars != null) rows.push(`${col(f.cost)}💰 $${(st.cost_usd || 0).toFixed(2)} / $${cfg.dollars.toFixed(2)}${C.reset}`);

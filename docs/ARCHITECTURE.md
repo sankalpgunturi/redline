@@ -77,3 +77,20 @@ Every retiring budget logs one outcome line to `~/.claude/redline/history.jsonl`
 node ~/redline/bin/stats.js          # landed-rate dashboard
 node ~/redline/bin/stats.js --json   # raw records
 ```
+
+## Time model: wall-clock to the deadline, active-only past it
+
+A time budget is **wall-clock up to the deadline** — it counts reading, thinking, and idle, because the task spans many prompts and the deadline is real. **Past** the deadline the meter only climbs while Claude is *actively responding* (a turn in progress); idle-past-deadline **freezes** it. So "over budget" means Claude kept working past the line, not that you sat reading after time ran out.
+
+Mechanics: `UserPromptSubmit` stamps `turn_start`; `Stop` closes the turn, adding any past-deadline span to `overshoot_sec`; `lib.timeUsedSec` = `min(elapsed, duration) + overshoot_sec (+ live in-flight past-deadline span)`. Because new prompts are blocked past 100%, the only overshoot is the turn that straddles the deadline.
+
+## How each dimension is measured
+
+| Dimension | Source | Notes |
+|---|---|---|
+| **time** | wall-clock + active overshoot (above) | the only dimension affected by idle |
+| **$** | Claude Code's `cost.total_cost_usd` (statusline feed) | client-side **estimate**, session-wide (incl. subagents), only moves during turns. Not a bill — on Max it's API-equivalent. |
+| **tokens** | summed from transcripts (main + subagents) | redline's own count; independent of the `$` source |
+| **plan %** | `rate_limits.*.used_percentage` delta from baseline | five_hour or seven_day window |
+
+Money needs no idle handling: cost only accrues when a prompt is sent, so it never inflates between prompts.

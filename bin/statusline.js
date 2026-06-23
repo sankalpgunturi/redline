@@ -51,6 +51,7 @@ process.stdin.on("end", () => {
   }
 
   const now = Math.floor(Date.now() / 1000);
+  const prevState = lib.readJSON(lib.statePath(sessionId)) || {};
   const costUsd = (d.cost && d.cost.total_cost_usd) || 0;
   const tokensUsed = lib.sumTranscriptTokens(d.transcript_path); // always: needed for burn-rate translation
 
@@ -58,23 +59,22 @@ process.stdin.on("end", () => {
   if (cfg.plan_pct != null) {
     const rl = d.rate_limits && d.rate_limits[cfg.plan_window || "five_hour"];
     planNow = rl ? rl.used_percentage : null;
-    const prev = lib.readJSON(lib.statePath(sessionId)) || {};
-    baselinePlan = prev.baseline_plan != null ? prev.baseline_plan : planNow;
+    baselinePlan = prevState.baseline_plan != null ? prevState.baseline_plan : planNow;
   }
 
-  const { f, overall } = lib.fractions(cfg, now, { costUsd, tokens: tokensUsed, planNow, baselinePlan });
+  const { f, overall } = lib.fractions(cfg, now, { costUsd, tokens: tokensUsed, planNow, baselinePlan, turnStart: prevState.turn_start, overshootSec: prevState.overshoot_sec });
 
-  const prevState = lib.readJSON(lib.statePath(sessionId)) || {};
   lib.writeJSON(lib.statePath(sessionId), {
     ts: now, cost_usd: costUsd, tokens: tokensUsed,
     plan_now: planNow, baseline_plan: baselinePlan,
     f, overall, last_threshold: prevState.last_threshold || 0,
     peak: Math.max(prevState.peak || 0, overall),
+    turn_start: prevState.turn_start ?? null, overshoot_sec: prevState.overshoot_sec || 0,
   });
 
   const segs = [];
   if (cfg.duration_sec != null) {
-    const left = cfg.duration_sec - (now - cfg.set_at);
+    const left = cfg.duration_sec - lib.timeUsedSec(cfg, now, prevState.turn_start, prevState.overshoot_sec);
     segs.push(`${color(f.time)}⏱ ${lib.fmtDuration(Math.max(0, left))}${C.reset}`);
   }
   if (cfg.dollars != null) {

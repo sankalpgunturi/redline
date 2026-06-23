@@ -65,6 +65,19 @@ echo "{\"session_id\":\"$SID\",\"transcript_path\":\"$PROJ2/t.jsonl\",\"cost\":{
 grep -q '"tokens": 3000' "$D/$SID.state.json" || fail "time-only budget did not sum tokens: $(cat "$D/$SID.state.json")"
 hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"PostToolUse\"}" | grep -q "<total_tokens>" || fail "no native signal for time-only budget"
 
+# 10c. DEADLINE OVERSHOOT MODEL: past the deadline, only ACTIVE time adds.
+NOWV=$(now)
+FIDLE=$(node -e 'const l=require("'"$BIN"'/lib.js");const n=+process.argv[1];console.log(l.fractions({set_at:n-120,duration_sec:60},n,{turnStart:null,overshootSec:0}).overall)' "$NOWV")
+[ "$FIDLE" = "1" ] || fail "idle past deadline must freeze at 100% (got $FIDLE)"
+FACTIVE=$(node -e 'const l=require("'"$BIN"'/lib.js");const n=+process.argv[1];console.log(l.fractions({set_at:n-120,duration_sec:60},n,{turnStart:n-30,overshootSec:0}).overall)' "$NOWV")
+[ "$FACTIVE" = "1.5" ] || fail "active turn past deadline must climb (want 1.5, got $FACTIVE)"
+# Stop closes the open turn into overshoot_sec and clears turn_start.
+setcfg "{\"session_id\":\"$SID\",\"set_at\":$(( $(now) - 120 )),\"duration_sec\":60}"
+setstate "{\"turn_start\":$(( $(now) - 30 )),\"overshoot_sec\":0}"
+hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"Stop\"}" >/dev/null
+grep -q '"turn_start": null' "$D/$SID.state.json" || fail "Stop did not clear turn_start"
+node -e 'const o=JSON.parse(require("fs").readFileSync(process.argv[1]));process.exit(o.overshoot_sec>=25&&o.overshoot_sec<=35?0:1)' "$D/$SID.state.json" || fail "Stop overshoot accounting wrong"
+
 # 11. ANALYTICS: SessionEnd retires a LANDED budget to history
 rm -f "$D/history.jsonl"
 setcfg "{\"session_id\":\"$SID\",\"set_at\":$(( $(now) - 150 )),\"duration_sec\":300}"  # 50% -> landed

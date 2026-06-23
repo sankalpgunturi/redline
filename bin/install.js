@@ -40,7 +40,7 @@ if (!settings.statusLine) {
 
 // Hooks: additive + de-duped by command.
 settings.hooks = settings.hooks || {};
-for (const ev of ["PreToolUse", "UserPromptSubmit", "PostToolUse", "SubagentStart", "SessionEnd"]) {
+for (const ev of ["PreToolUse", "UserPromptSubmit", "PostToolUse", "SubagentStart", "SessionEnd", "Stop"]) {
   settings.hooks[ev] = settings.hooks[ev] || [];
   const already = JSON.stringify(settings.hooks[ev]).includes("redline");
   if (!already) settings.hooks[ev].push({ hooks: [{ type: "command", command: hookCmd }] });
