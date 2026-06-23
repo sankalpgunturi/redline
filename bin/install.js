@@ -52,7 +52,7 @@ fs.writeFileSync(SETTINGS, JSON.stringify(settings, null, 2));
 const cmdMd = `---
 description: "Set/clear this session's time + token/$ budget. e.g. /redline 10m $5 | 30m 200k | 45m 10% | off"
 ---
-!\`node "${setJs}" "$ARGUMENTS" "\${CLAUDE_SESSION_ID}"\`
+!\`node "${setJs}" '$ARGUMENTS' "\${CLAUDE_SESSION_ID}"\`
 `;
 fs.writeFileSync(path.join(CMD_DIR, "redline.md"), cmdMd);
 

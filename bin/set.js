@@ -34,8 +34,22 @@ function clear() {
   console.log("redline cleared — no budget is active for this session.");
 }
 
-if (!argStr || ["off", "clear", "none", "stop", "reset", "cancel"].includes(tokens[0])) {
+if (["off", "clear", "none", "stop", "reset", "cancel"].includes(tokens[0])) {
   clear();
+  process.exit(0);
+}
+if (!argStr) {
+  const cur = !pending ? lib.readJSON(lib.cfgPath(sessionId)) : null;
+  if (cur) {
+    const p = [];
+    if (cur.duration_sec) p.push(lib.fmtDuration(cur.duration_sec));
+    if (cur.dollars) p.push("$" + cur.dollars.toFixed(2));
+    if (cur.tokens) p.push(lib.fmtTokens(cur.tokens) + " tokens");
+    if (cur.plan_pct != null) p.push(cur.plan_pct + "% plan");
+    console.log("redline active for this session: " + p.join(" + ") + ".  Change with /redline <spec>, or /redline off.");
+  } else {
+    console.log("redline: no budget set.\nExamples:  /redline 10m   |   /redline $5   |   /redline 30m $5   |   /redline 1h 200k   |   /redline 45m 10%   |   /redline off");
+  }
   process.exit(0);
 }
 
