@@ -11,7 +11,7 @@ You give an agent a task and lose control of two things: how *long* it runs and 
 …and you get a live burn-down in your statusline plus an agent that's continuously reminded of the limit and steered to **finish the task within it** — converging gracefully as the budget depletes instead of getting chopped off mid-thought.
 
 ```
-redline 58% · ⏱ 4:12 left · 💰 $2.90/$5.00 · 📊 6.1/10%
+redline ███████░░░░░ 58% · ⏱ 4:12 · 💰 $2.90/$5.00 · 📊 6.1/10%
 ```
 
 ## Install

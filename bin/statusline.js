@@ -2,7 +2,7 @@
 "use strict";
 // redline statusline: the live monitor AND the sensor.
 // - Reads Claude Code's statusline JSON on stdin (has cost + rate_limits).
-// - Renders a one-line burn-down for whatever budget dimensions are set.
+// - Renders a one-line burn-down BAR for whatever budget dimensions are set.
 // - Writes a state snapshot the hook reads (the hook's stdin lacks cost/rate_limits).
 
 const lib = require("./lib.js");
@@ -12,6 +12,12 @@ const C = {
   green: "\x1b[32m", yellow: "\x1b[33m", red: "\x1b[31m", cyan: "\x1b[36m",
 };
 const color = (frac) => (frac >= 0.9 ? C.bold + C.red : frac >= 0.75 ? C.red : frac >= 0.5 ? C.yellow : C.green);
+
+// A drawn burn-down bar: filled blocks = budget consumed.
+function bar(frac, width = 12) {
+  const filled = Math.max(0, Math.min(width, Math.round(frac * width)));
+  return "█".repeat(filled) + "░".repeat(width - filled);
+}
 
 function read(stdin) {
   let d = {};
@@ -40,7 +46,7 @@ process.stdin.on("end", () => {
 
   if (!cfg) {
     // No budget active — stay out of the way, just hint how to start one.
-    process.stdout.write(`${C.dim}redline: no budget · /redline 10m $5${C.reset}` + (model ? `  ${C.dim}${model}${C.reset}` : ""));
+    process.stdout.write(`${C.dim}redline ░░░░░░░░░░░░ no budget · /redline 10m $5${C.reset}` + (model ? `  ${C.dim}${model}${C.reset}` : ""));
     return;
   }
 
@@ -67,11 +73,11 @@ process.stdin.on("end", () => {
     f, overall, last_threshold: prevState.last_threshold || 0,
   });
 
-  // Render segments.
+  // Render: a big overall bar, then a compact figure per configured dimension.
   const segs = [];
   if (cfg.duration_sec != null) {
     const left = cfg.duration_sec - (now - cfg.set_at);
-    segs.push(`${color(f.time)}⏱ ${lib.fmtDuration(Math.max(0, left))} left${C.reset}`);
+    segs.push(`${color(f.time)}⏱ ${lib.fmtDuration(Math.max(0, left))}${C.reset}`);
   }
   if (cfg.dollars != null) {
     segs.push(`${color(f.cost)}💰 $${costUsd.toFixed(2)}/$${cfg.dollars.toFixed(2)}${C.reset}`);
@@ -85,6 +91,7 @@ process.stdin.on("end", () => {
   }
 
   const pct = Math.round(overall * 100);
-  const head = `${color(overall)}${C.bold}redline ${pct}%${C.reset}`;
+  const col = color(overall);
+  const head = `${col}${C.bold}redline${C.reset} ${col}${bar(overall)} ${pct}%${C.reset}`;
   process.stdout.write([head, ...segs].join(`${C.dim} · ${C.reset}`));
 });
