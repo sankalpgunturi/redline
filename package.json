@@ -1,7 +1,7 @@
 {
   "name": "redline-cc",
   "version": "0.1.0",
-  "description": "Hard time + token/$ budgets for Claude Code sessions — the agent paces itself to land within the budget.",
+  "description": "Hard time + token/$ budgets for Claude Code sessions - the agent paces itself to land within the budget.",
   "bin": { "redline": "bin/redline" },
   "files": ["bin", "commands", "install.sh"],
   "scripts": { "test": "bash test/test.sh" },

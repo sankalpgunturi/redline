@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 "use strict";
-// redline stats — local analytics. The one metric that matters: did redline land
+// redline stats - local analytics. The one metric that matters: did redline land
 // the session within budget (peak usage <= 100%)? Reads ~/.claude/redline/history.jsonl
 // (append-only, local only). Usage: node ~/redline/bin/stats.js [--json] [-n N]
 const fs = require("fs");

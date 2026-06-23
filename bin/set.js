@@ -31,7 +31,7 @@ function clear() {
     try { fs.rmSync(lib.statePath(sessionId)); } catch {}
   }
   try { fs.rmSync(lib.pendingPath()); } catch {}
-  console.log("redline cleared — no budget is active for this session.");
+  console.log("redline cleared - no budget is active for this session.");
 }
 
 if (["off", "clear", "none", "stop", "reset", "cancel"].includes(tokens[0])) {
@@ -113,16 +113,16 @@ if (cfg.plan_pct != null) parts.push(cfg.plan_pct + "% of " + (wantSevenDay ? "7
 console.log(
 `✅ redline budget set for this session: ${parts.join(" + ")}.
 
-You'll see a budget signal every turn — \`<total_tokens>N tokens left</total_tokens>\` (the
+You'll see a budget signal every turn - \`<total_tokens>N tokens left</total_tokens>\` (the
 same signal you natively pace against) plus a \`<redline>\` line with time/$/tier. Treat this
 as a soft budget you must land WITHIN, never exceed:
 
 1. First, give a one-line PLAN that allocates the budget across steps by difficulty, and
    reserve ~15% to finish (write/verify/summarise). State whether it's feasible in this
-   budget — if not, propose a reduced scope before starting.
+   budget - if not, propose a reduced scope before starting.
 2. Spend budget only on steps that change your next action. Keep tool outputs small.
 3. Follow the tier in the <redline> line: HIGH = explore · MEDIUM = targeted · LOW = ship the
    minimal result + deliver · RESERVE (90%) = tools lock, finish from what you have.
 4. Deliver a working result BEFORE the budget runs out. Don't run over expecting to wrap up
-   later — at 90% new tool calls are blocked and at 100% new work stops.`
+   later - at 90% new tool calls are blocked and at 100% new work stops.`
 );

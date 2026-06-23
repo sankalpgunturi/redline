@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="redline — land within budget" width="100%">
+  <img src="assets/banner.svg" alt="redline: give your AI agent a time and money limit" width="100%">
 </p>
 
 <p align="center">
-  <b>Hard time + token/$ budgets for Claude Code.</b><br>
-  Your agent paces itself to land <i>within</i> the line — never over, never an abrupt kill.
+  <b>Give your AI agent a time and money limit.</b><br>
+  Set a limit. redline paces the session to finish inside it, and stops it before it runs over.
 </p>
 
 <p align="center">
@@ -33,19 +33,21 @@ Set a budget any time, inside Claude Code:
 /redline 10m $5
 ```
 
-You get a live burn-down in your statusline, and an agent that converges to finish inside it:
+You get a live burn-down in your statusline, and an agent that paces itself to finish inside it:
 
 ```
-redline  ⏱ ███████████░ 90%  ·  ⏱ 1:00 left  ·  💰 $1.85 left
+redline  ████████████  ⏱ 1:00  ·  💰 $1.85 left
 ```
 
-**The promise** — [why it holds →](docs/ARCHITECTURE.md#the-reserve-landing-model-never-over-never-abrupt)
+**The promise** ([why it holds](docs/ARCHITECTURE.md#the-reserve-landing-model-never-over-never-abrupt)):
 
-- 🔴 **Never over** — the budget is an inviolable ceiling.
-- 🏁 **Under is success** — lands ~90% with the task done.
-- 🪂 **Never abrupt** — always finishes with a usable result; no mid-sentence kill.
+- 🔴 **Never over.** The budget is a hard ceiling.
+- 🏁 **Under is success.** It lands around 90% with the task done.
+- 🪂 **Never abrupt.** It always finishes with a usable result. No mid-sentence kill.
 
-> One budget covers everything the session spawns — **fanned subagents share the same umbrella**, counted *and* enforced. You never budget a subagent separately. [How →](docs/ARCHITECTURE.md#session-wide-subagent-umbrella)
+> One budget covers everything the session spawns. Fanned subagents share the same umbrella, counted and enforced. You never budget a subagent separately. [How it works](docs/ARCHITECTURE.md#session-wide-subagent-umbrella).
+
+> Works with Claude Code today. Codex and other agents are on the roadmap.
 
 ## Install
 
@@ -66,7 +68,7 @@ curl -fsSL https://raw.githubusercontent.com/sankalpgunturi/redline/main/install
 git clone https://github.com/sankalpgunturi/redline && cd redline && ./install.sh
 ```
 
-Backs up your settings, never clobbers an existing statusline, safe to re-run. Remove anytime with `redline uninstall`.
+It backs up your settings, never clobbers an existing statusline, and is safe to re-run. Remove anytime with `redline uninstall`.
 
 ## Use
 
@@ -74,25 +76,25 @@ Backs up your settings, never clobbers an existing statusline, safe to re-run. R
 |---|---|
 | `/redline 10m` | 10 minutes |
 | `/redline $5` | $5 |
-| `/redline 30m $5` | 30 min **+** $5 |
-| `/redline 1h 200k` | 1 hour **+** 200k tokens |
-| `/redline 45m 10%` | 45 min **+** 10% of your plan |
+| `/redline 30m $5` | 30 min and $5 |
+| `/redline 1h 200k` | 1 hour and 200k tokens |
+| `/redline 45m 10%` | 45 min and 10% of your plan |
 | `/redline off` | clear |
 
-Whichever dimension is closest to its limit drives the bar (tagged with its gauge). Each shows a single countdown — `⏱ 1:00 left`, `💰 $1.85 left`.
+Whichever dimension is closest to its limit drives the bar (tagged with its gauge). Each one counts down, like `⏱ 1:00 left` and `💰 $1.85 left`.
 
 ## Commands
 
 | Command | What |
 |---|---|
 | `redline stats` | did your sessions land within budget? (local, no network) |
-| `redline watch` | smooth ~10×/sec budget ticker for a split pane |
+| `redline watch` | smooth live ticker for a split pane |
 | `redline uninstall` | remove redline from Claude Code |
 | `redline version` | |
 
 ## Analytics
 
-One metric: **did the session land within budget?** Every run logs its outcome locally (no network):
+One number that matters: did the session land within budget? Every run logs its outcome locally (no network):
 
 ```bash
 redline stats
@@ -105,4 +107,4 @@ redline stats
 
 ---
 
-<p align="center"><sub>MIT © redline contributors · built on Claude Code's native hooks + statusline · zero dependencies</sub></p>
+<p align="center"><sub>MIT © redline contributors · built on Claude Code's native hooks and statusline · zero dependencies</sub></p>

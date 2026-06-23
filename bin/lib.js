@@ -1,5 +1,5 @@
 "use strict";
-// Shared helpers for redline. No deps — uses the Node that ships with Claude Code.
+// Shared helpers for redline. No deps - uses the Node that ships with Claude Code.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -37,7 +37,7 @@ function sumTranscriptTokens(transcriptPath) {
 
 // Effective time used. Wall-clock UP TO the deadline (counts reading/thinking/idle,
 // because the deadline spans prompts). PAST the deadline, only ACTIVE response time
-// adds — idle-past-deadline freezes the meter. (turnStart = open turn's start ts;
+// adds - idle-past-deadline freezes the meter. (turnStart = open turn's start ts;
 // overshootSec = accumulated active time past the deadline from completed turns.)
 function timeUsedSec(cfg, now, turnStart, overshootSec) {
   if (!cfg.duration_sec) return 0;

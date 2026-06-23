@@ -3,7 +3,7 @@
 // redline statusline: the live monitor AND the sensor.
 // - Reads Claude Code's statusline JSON on stdin (has cost + rate_limits).
 // - Renders ONE burn-down bar for the binding constraint (the dimension closest
-//   to its limit — the one that will stop you first), tagged with which gauge it
+//   to its limit - the one that will stop you first), tagged with which gauge it
 //   is, plus a compact figure per configured dimension.
 // - Writes a state snapshot the hook reads (the hook's stdin lacks cost/rate_limits).
 

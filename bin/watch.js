@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 "use strict";
-// redline watch — a high-frequency live budget ticker for a split terminal pane.
+// redline watch - a high-frequency live budget ticker for a split terminal pane.
 // The Claude Code statusline caps at 1s refresh; this redraws ~10x/second with a
 // smooth sub-character bar and tenths-of-a-second countdown, so you SEE it move.
 //

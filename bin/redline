@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 "use strict";
-// redline — single CLI entrypoint. User commands (install/uninstall/stats/watch/
+// redline - single CLI entrypoint. User commands (install/uninstall/stats/watch/
 // version) plus the internal modes Claude Code invokes (hook/statusline/set).
 // Wiring redline into settings via this stable entrypoint keeps hooks working
 // across upgrades (e.g. Homebrew repointing its symlink).
 const path = require("path");
 
 const MAP = { install: "install.js", uninstall: "uninstall.js", stats: "stats.js", watch: "watch.js", hook: "hook.js", statusline: "statusline.js", set: "set.js" };
-const HELP = `redline — time + token/$ budgets for Claude Code
+const HELP = `redline - time + token/$ budgets for Claude Code
 
   redline install      wire redline into Claude Code (statusline + hooks + /redline)
   redline uninstall    remove redline from Claude Code

@@ -18,4 +18,4 @@ if (s.hooks) for (const ev of Object.keys(s.hooks)) {
 }
 fs.writeFileSync(SETTINGS, JSON.stringify(s, null, 2));
 try { fs.rmSync(CMD); } catch {}
-console.log("✅ redline removed from Claude Code (settings backed up to settings.json.bak).\n   Budgets + analytics kept in ~/.claude/redline — delete that dir to fully purge.");
+console.log("✅ redline removed from Claude Code (settings backed up to settings.json.bak).\n   Budgets + analytics kept in ~/.claude/redline - delete that dir to fully purge.");
