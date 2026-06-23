@@ -70,6 +70,7 @@ process.stdin.on("end", () => {
     f, overall, last_threshold: prevState.last_threshold || 0,
     peak: Math.max(prevState.peak || 0, overall),
     turn_start: prevState.turn_start ?? null, overshoot_sec: prevState.overshoot_sec || 0,
+    cwd: d.cwd || prevState.cwd || null, name: d.session_name || prevState.name || null,
   });
 
   const segs = [];

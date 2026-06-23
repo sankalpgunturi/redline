@@ -94,6 +94,6 @@ grep -q '"landed":false' "$D/history.jsonl" || fail "over-budget outcome not rec
 grep -q '"overshoot_pct":20' "$D/history.jsonl" || fail "overshoot not computed"
 
 # 13. stats dashboard reads history
-node "$BIN/stats.js" | grep -qi "landed" || fail "stats dashboard broken"
+node "$BIN/dashboard.js" --once | grep -qi "landed" || fail "dashboard broken"
 
 echo "PASS: redline v2 self-check (ledger+tiers+native signal · enforcement · umbrella · analytics)"

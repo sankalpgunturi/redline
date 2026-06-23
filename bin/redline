@@ -6,13 +6,12 @@
 // across upgrades (e.g. Homebrew repointing its symlink).
 const path = require("path");
 
-const MAP = { install: "install.js", uninstall: "uninstall.js", stats: "stats.js", watch: "watch.js", hook: "hook.js", statusline: "statusline.js", set: "set.js" };
+const MAP = { install: "install.js", uninstall: "uninstall.js", dashboard: "dashboard.js", stats: "dashboard.js", hook: "hook.js", statusline: "statusline.js", set: "set.js" };
 const HELP = `redline - time + token/$ budgets for Claude Code
 
   redline install      wire redline into Claude Code (statusline + hooks + /redline)
   redline uninstall    remove redline from Claude Code
-  redline stats        "did it land within budget?" dashboard  (--json for raw)
-  redline watch        live budget ticker for a split pane
+  redline dashboard    all active budgets + landed-rate, live  (alias: stats)
   redline version
 
 Then, inside Claude Code, set a budget any time:  /redline 10m $5   ·   /redline off
