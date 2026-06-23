@@ -52,7 +52,7 @@ process.stdin.on("end", () => {
 
   const now = Math.floor(Date.now() / 1000);
   const costUsd = (d.cost && d.cost.total_cost_usd) || 0;
-  const tokensUsed = cfg.tokens ? lib.sumTranscriptTokens(d.transcript_path) : 0;
+  const tokensUsed = lib.sumTranscriptTokens(d.transcript_path); // always: needed for burn-rate translation
 
   let baselinePlan = null, planNow = null;
   if (cfg.plan_pct != null) {

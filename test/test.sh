@@ -57,6 +57,14 @@ printf '%s\n' '{"type":"assistant","message":{"usage":{"input_tokens":1000,"outp
 TOK=$(node -e 'process.stdout.write(String(require("'"$BIN"'/lib.js").sumTranscriptTokens(process.argv[1])))' "$MAIN")
 [ "$TOK" = "1650" ] || fail "token sum should include subagents (got $TOK)"
 
+# 10b. REGRESSION: a TIME-ONLY budget must still sum tokens (burn-rate translation).
+PROJ2="$HOME/proj2"; mkdir -p "$PROJ2"
+printf '%s\n' '{"type":"assistant","message":{"usage":{"input_tokens":2000,"output_tokens":1000}}}' > "$PROJ2/t.jsonl"
+setcfg "{\"session_id\":\"$SID\",\"set_at\":$(( $(now) - 30 )),\"duration_sec\":300}"
+echo "{\"session_id\":\"$SID\",\"transcript_path\":\"$PROJ2/t.jsonl\",\"cost\":{\"total_cost_usd\":0.1}}" | node "$BIN/statusline.js" >/dev/null
+grep -q '"tokens": 3000' "$D/$SID.state.json" || fail "time-only budget did not sum tokens: $(cat "$D/$SID.state.json")"
+hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"PostToolUse\"}" | grep -q "<total_tokens>" || fail "no native signal for time-only budget"
+
 # 11. ANALYTICS: SessionEnd retires a LANDED budget to history
 rm -f "$D/history.jsonl"
 setcfg "{\"session_id\":\"$SID\",\"set_at\":$(( $(now) - 150 )),\"duration_sec\":300}"  # 50% -> landed
