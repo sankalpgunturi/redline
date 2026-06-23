@@ -10,6 +10,11 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
       - run: bash test/test.sh
-      - name: Create release
-        run: gh release create "${GITHUB_REF_NAME}" --generate-notes --title "redline ${GITHUB_REF_NAME}"
+      - name: Create release if missing
         env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "Release ${GITHUB_REF_NAME} already exists — skipping."
+          else
+            gh release create "${GITHUB_REF_NAME}" --generate-notes --title "redline ${GITHUB_REF_NAME}"
+          fi
