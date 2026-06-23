@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+"use strict";
+// redline — single CLI entrypoint. User commands (install/uninstall/stats/watch/
+// version) plus the internal modes Claude Code invokes (hook/statusline/set).
+// Wiring redline into settings via this stable entrypoint keeps hooks working
+// across upgrades (e.g. Homebrew repointing its symlink).
+const path = require("path");
+
+const MAP = { install: "install.js", uninstall: "uninstall.js", stats: "stats.js", watch: "watch.js", hook: "hook.js", statusline: "statusline.js", set: "set.js" };
+const HELP = `redline — time + token/$ budgets for Claude Code
+
+  redline install      wire redline into Claude Code (statusline + hooks + /redline)
+  redline uninstall    remove redline from Claude Code
+  redline stats        "did it land within budget?" dashboard  (--json for raw)
+  redline watch        live budget ticker for a split pane
+  redline version
+
+Then, inside Claude Code, set a budget any time:  /redline 10m $5   ·   /redline off
+Docs: https://github.com/sankalpgunturi/redline`;
+
+const sub = process.argv[2];
+if (sub === "version" || sub === "--version" || sub === "-v") {
+  console.log("redline " + require(path.join(__dirname, "..", "package.json")).version);
+  process.exit(0);
+}
+if (!sub || ["help", "--help", "-h"].includes(sub)) { console.log(HELP); process.exit(0); }
+if (!MAP[sub]) { console.error("unknown command: " + sub + "\n\n" + HELP); process.exit(1); }
+process.argv.splice(2, 1); // drop subcommand so target scripts see their own args at [2..]
+require(path.join(__dirname, MAP[sub]));

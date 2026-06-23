@@ -1,0 +1,13 @@
+{
+  "name": "redline-cc",
+  "version": "0.1.0",
+  "description": "Hard time + token/$ budgets for Claude Code sessions — the agent paces itself to land within the budget.",
+  "bin": { "redline": "bin/redline" },
+  "files": ["bin", "commands", "install.sh"],
+  "scripts": { "test": "bash test/test.sh" },
+  "keywords": ["claude-code", "claude", "ai", "budget", "tokens", "cost", "cli", "hooks", "llm", "developer-tools"],
+  "homepage": "https://github.com/sankalpgunturi/redline",
+  "repository": { "type": "git", "url": "https://github.com/sankalpgunturi/redline.git" },
+  "license": "MIT",
+  "engines": { "node": ">=18" }
+}

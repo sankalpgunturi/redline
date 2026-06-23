@@ -74,8 +74,8 @@ Important: `taskBudget` is only the *cooperative* layer ("pace and wrap up") —
 Every retiring budget logs one outcome line to `~/.claude/redline/history.jsonl` (append-only, local only, no network) — on `SessionEnd`, `/redline off`, or a new `/redline`. The one metric: **did peak usage stay ≤ 100% (landed) or not.** Record shape: `{budget, peak, final, landed, overshoot_pct, reason}`. View with:
 
 ```bash
-node ~/redline/bin/stats.js          # landed-rate dashboard
-node ~/redline/bin/stats.js --json   # raw records
+redline stats          # landed-rate dashboard
+redline stats --json   # raw records
 ```
 
 ## Time model: wall-clock to the deadline, active-only past it

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>redline — land within budget</title>
+<meta name="description" content="Hard time + token/$ budgets for Claude Code. The agent paces itself to land within the budget — never over, never an abrupt kill.">
+<meta property="og:title" content="redline — land within budget">
+<meta property="og:description" content="Hard time + token/$ budgets for Claude Code sessions.">
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--line:#21262d;--fg:#e6edf3;--dim:#8b949e;--red:#ff4d4d;--green:#3fb950;--yellow:#d29922;--accent:#d97757}
+  *{box-sizing:border-box} html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:880px;margin:0 auto;padding:0 20px}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  mono,code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  header{text-align:center;padding:72px 0 28px}
+  h1{font-size:64px;font-weight:800;letter-spacing:-2px;margin:0;display:inline-block;position:relative}
+  h1::after{content:"";position:absolute;left:0;right:0;bottom:-8px;height:5px;background:var(--red);border-radius:3px}
+  .tag{font-size:20px;color:var(--fg);margin:34px 0 6px;font-weight:600}
+  .sub{color:var(--dim);margin:0 0 26px}
+  .cta{display:inline-flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .btn{display:inline-block;padding:10px 18px;border-radius:8px;font-weight:600;font-size:15px}
+  .btn.primary{background:var(--accent);color:#fff} .btn.ghost{border:1px solid var(--line);color:var(--fg)}
+  /* burn-down demo */
+  .demo{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:36px 0}
+  .demo .row{display:flex;align-items:center;gap:14px;font-family:ui-monospace,monospace;font-size:15px}
+  .barwrap{flex:1;height:18px;background:#0a0e14;border-radius:9px;overflow:hidden;position:relative;border:1px solid var(--line)}
+  .bar{height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,var(--green),var(--yellow) 70%,var(--red));transition:width .12s linear}
+  .redmark{position:absolute;right:8%;top:-3px;bottom:-3px;width:2px;background:var(--red);opacity:.8}
+  .pct{width:54px;text-align:right;font-weight:700}
+  .label{color:var(--dim);font-size:13px;margin-top:10px;text-align:center}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0 8px}
+  @media(max-width:640px){.grid{grid-template-columns:1fr} h1{font-size:46px}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .card h3{margin:0 0 6px;font-size:16px} .card p{margin:0;color:var(--dim);font-size:14px}
+  h2{font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin:48px 0 14px;font-weight:700}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font-size:14px;margin:8px 0}
+  .install b{color:var(--accent)}
+  footer{text-align:center;color:var(--dim);font-size:13px;padding:50px 0 40px;border-top:1px solid var(--line);margin-top:54px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>redline</h1>
+    <p class="tag">Land within budget.</p>
+    <p class="sub">Hard time + token/$ budgets for Claude Code. The agent paces itself to finish<br>inside the budget — <b>never over, never an abrupt kill.</b></p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/sankalpgunturi/redline">GitHub ★</a>
+      <a class="btn ghost" href="#install">Install</a>
+    </div>
+
+    <div class="demo">
+      <div class="row">
+        <span>redline</span>
+        <div class="barwrap"><div class="bar" id="bar"></div><div class="redmark"></div></div>
+        <span class="pct" id="pct">0%</span>
+      </div>
+      <div class="row" style="margin-top:12px;color:var(--dim)"><span id="fig">⏱ 10:00 left · 💰 $5.00 left</span></div>
+      <div class="label">revs up toward the redline — and lands just short of it</div>
+    </div>
+  </header>
+
+  <h2>Why</h2>
+  <div class="grid">
+    <div class="card"><h3>🔴 Never over</h3><p>The budget is an inviolable ceiling. Tools lock at 90%; new work stops at 100%.</p></div>
+    <div class="card"><h3>🪂 Never abrupt</h3><p>It wraps up and delivers a usable result — no mid-sentence kill.</p></div>
+    <div class="card"><h3>⏱ Time, not just tokens</h3><p>Wall-clock deadlines too — the thing Anthropic's budget machinery has no concept of.</p></div>
+    <div class="card"><h3>☂ One umbrella</h3><p>Fanned subagents share the same budget. You never budget a subagent separately.</p></div>
+  </div>
+
+  <h2 id="install">Install</h2>
+  <p class="install">Needs the Node that ships with Claude Code. Pick one, then restart Claude Code:</p>
+  <pre><b>brew</b>  brew install sankalpgunturi/redline/redline && redline install
+<b>curl</b>  curl -fsSL https://raw.githubusercontent.com/sankalpgunturi/redline/main/install.sh | bash
+<b>git</b>   git clone https://github.com/sankalpgunturi/redline && cd redline && ./install.sh</pre>
+
+  <h2>Use</h2>
+  <pre>/redline 10m $5      set a budget (time + $, any combination)
+/redline $2          money only      /redline 1h 200k   time + tokens
+/redline 45m 10%     45 min + 10% of plan      /redline off   clear
+
+redline stats        did it land within budget?
+redline watch        smooth live ticker for a split pane</pre>
+
+  <footer>MIT · built on Claude Code's native hooks + statusline · zero dependencies · <a href="https://github.com/sankalpgunturi/redline">github.com/sankalpgunturi/redline</a></footer>
+</div>
+
+<script>
+  // Burn-down that sweeps up and decelerates into the landing zone, stopping short of the redline.
+  const bar=document.getElementById('bar'),pct=document.getElementById('pct'),fig=document.getElementById('fig');
+  let t=0;const target=92, dur=2600, start=performance.now();
+  function ease(x){return 1-Math.pow(1-x,3)}
+  function frame(now){
+    const k=Math.min(1,(now-start)/dur);const v=ease(k)*target;
+    bar.style.width=v+'%';pct.textContent=Math.round(v)+'%';
+    const col=v>=90?'#ff4d4d':v>=70?'#d29922':'#3fb950';pct.style.color=col;
+    const left=Math.max(0,10*(1-v/100));const m=Math.floor(left),s=Math.round((left-m)*60).toString().padStart(2,'0');
+    fig.textContent='⏱ '+m+':'+s+' left · 💰 $'+(5*(1-v/100)).toFixed(2)+' left';
+    if(k<1)requestAnimationFrame(frame);
+    else setTimeout(()=>{start2();},1400);
+  }
+  function start2(){const s=performance.now();function f(now){const k=Math.min(1,(now-s)/600);bar.style.width=(92*(1-k))+'%';pct.textContent=Math.round(92*(1-k))+'%';if(k<1)requestAnimationFrame(f);else{performance.now();setTimeout(()=>{location.reload&&restart()},200)}}requestAnimationFrame(f)}
+  function restart(){bar.style.width='0';pct.textContent='0%';const s=performance.now();const ns=s;requestAnimationFrame(function r(now){const k=Math.min(1,(now-ns)/dur);const v=ease(k)*target;bar.style.width=v+'%';pct.textContent=Math.round(v)+'%';const col=v>=90?'#ff4d4d':v>=70?'#d29922':'#3fb950';pct.style.color=col;const left=Math.max(0,10*(1-v/100));const m=Math.floor(left),sec=Math.round((left-m)*60).toString().padStart(2,'0');fig.textContent='⏱ '+m+':'+sec+' left · 💰 $'+(5*(1-v/100)).toFixed(2)+' left';if(k<1)requestAnimationFrame(r);else setTimeout(start2,1400)})}
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>
