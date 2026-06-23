@@ -51,7 +51,7 @@ function history() {
 
 function render() {
   const now = Math.floor(Date.now() / 1000);
-  const L = ["", "  " + C.bold + "redline · mission control" + C.reset, ""];
+  const L = ["", "  " + C.bold + "redline · dashboard" + C.reset, ""];
 
   const sess = activeSessions(now);
   L.push("  " + C.dim + "ACTIVE BUDGETS" + C.reset);
@@ -64,15 +64,16 @@ function render() {
   L.push("");
 
   const h = history();
-  L.push("  " + C.dim + "LANDED WITHIN BUDGET (all time)" + C.reset);
-  if (!h.length) L.push("    " + C.dim + "no finished sessions yet" + C.reset);
+  L.push("  " + C.dim + "TRACK RECORD" + C.reset);
+  if (!h.length) L.push("    " + C.dim + "no finished sessions yet · this fills in as sessions end" + C.reset);
   else {
     const landed = h.filter((r) => r.landed).length, rate = Math.round((landed / h.length) * 100);
     const over = h.filter((r) => !r.landed);
     const avgOver = over.length ? Math.round(over.reduce((a, r) => a + r.overshoot_pct, 0) / over.length) : 0;
     const c = rate >= 90 ? C.green : rate >= 70 ? C.yellow : C.red;
-    L.push("    " + c + bar(rate / 100) + C.reset + "  " + c + C.bold + rate + "%" + C.reset + " landed  " + C.dim + "(" + landed + "/" + h.length + ")" + C.reset);
-    if (over.length) L.push("    " + C.dim + "over budget: " + over.length + " · avg overshoot " + avgOver + "%" + C.reset);
+    L.push("    " + c + C.bold + rate + "%" + C.reset + " of sessions finished inside their budget  " + C.dim + "(" + landed + " of " + h.length + ")" + C.reset);
+    L.push("    " + c + bar(rate / 100) + C.reset);
+    if (over.length) L.push("    " + C.dim + over.length + " went over, by " + avgOver + "% on average" + C.reset);
   }
   L.push("");
   if (!once) L.push("  " + C.dim + "refreshing · ctrl-c to exit" + C.reset);
