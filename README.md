@@ -87,16 +87,16 @@ Whichever dimension is closest to its limit drives the bar (tagged with its gaug
 
 | Command | What |
 |---|---|
-| `redline dashboard` | all your active budgets, live, plus the landed-rate (local, no network) |
+| `redline pulse` | all your active budgets, live, plus the landed-rate (local, no network) |
 | `redline uninstall` | remove redline from Claude Code |
 | `redline version` | |
 
-## Dashboard
+## Pulse
 
 Every active budget across your sessions, live, plus the one number that matters: did the session land within budget? All local, no network.
 
 ```bash
-redline dashboard
+redline pulse
 ```
 ```
   redline · did it land within budget?

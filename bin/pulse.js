@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 "use strict";
-// redline dashboard ("mission control"): every active budget across all your
+// redline pulse: every active budget across all your
 // sessions, live, plus the lifetime "did it land within budget?" number.
 // Live in a terminal, one snapshot when piped. `--json` dumps raw history.
 const fs = require("fs");
@@ -51,7 +51,7 @@ function history() {
 
 function render() {
   const now = Math.floor(Date.now() / 1000);
-  const L = ["", "  " + C.bold + "redline · dashboard" + C.reset, ""];
+  const L = ["", "  " + C.bold + "redline · pulse" + C.reset, ""];
 
   const sess = activeSessions(now);
   L.push("  " + C.dim + "ACTIVE BUDGETS" + C.reset);

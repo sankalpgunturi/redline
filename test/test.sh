@@ -93,7 +93,7 @@ hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"SessionEnd\"}" >/dev/null
 grep -q '"landed":false' "$D/history.jsonl" || fail "over-budget outcome not recorded"
 grep -q '"overshoot_pct":20' "$D/history.jsonl" || fail "overshoot not computed"
 
-# 13. stats dashboard reads history
-node "$BIN/dashboard.js" --once | grep -qi "landed" || fail "dashboard broken"
+# 13. pulse reads history (the track-record section)
+node "$BIN/pulse.js" --once | grep -qi "kept you on track" || fail "pulse broken"
 
 echo "PASS: redline v2 self-check (ledger+tiers+native signal · enforcement · umbrella · analytics)"

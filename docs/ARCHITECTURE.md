@@ -56,7 +56,7 @@ One budget covers the whole session. Users never set per-subagent budgets.
 
 - **Token / $ / plan are the precise guarantee** - spend only accrues with work, and the lock catches it with reserve to spare.
 - **Wall-clock time is best-effort.** The clock advances while the model generates; the lock can only fire at a tool attempt or turn boundary. On realistic budgets (minutes) checkpoints are frequent enough to land cleanly under; on absurdly tight budgets (seconds, smaller than one turn) the clock can pass the line between checkpoints. A periodic statusline-driven time guard is on the roadmap.
-- **Statusline refresh caps at 1s** - Claude Code re-renders the statusline on events plus a `refreshInterval` whose minimum is 1 second; it cannot tick sub-second. For a live multi-session view (and a smoother display) run `redline dashboard` in a split pane.
+- **Statusline refresh caps at 1s** - Claude Code re-renders the statusline on events plus a `refreshInterval` whose minimum is 1 second; it cannot tick sub-second. For a live multi-session view (and a smoother display) run `redline pulse` in a split pane.
 - **Live $/token/plan need an interactive session** - the statusline (the sensor) doesn't render in headless `claude -p`, where only time is live.
 
 ## Mirroring Anthropic's `taskBudget`
@@ -74,8 +74,8 @@ Important: `taskBudget` is only the *cooperative* layer ("pace and wrap up") - i
 Every retiring budget logs one outcome line to `~/.claude/redline/history.jsonl` (append-only, local only, no network) - on `SessionEnd`, `/redline off`, or a new `/redline`. The one metric: **did peak usage stay ≤ 100% (landed) or not.** Record shape: `{budget, peak, final, landed, overshoot_pct, reason}`. View with:
 
 ```bash
-redline dashboard          # live: active budgets + landed-rate
-redline dashboard --json   # raw history records
+redline pulse          # live: active budgets + landed-rate
+redline pulse --json   # raw history records
 ```
 
 ## Time model: wall-clock to the deadline, active-only past it
