@@ -5,7 +5,9 @@
   <line x1="210" y1="252" x2="304.0" y2="174.2" stroke="#f0f6fc" stroke-width="5" stroke-linecap="round"/>
   <circle cx="210" cy="252" r="9" fill="#f0f6fc"/>
   <circle cx="210" cy="252" r="3.5" fill="#0d1117"/>
-  <text x="392" y="168" font-size="82" font-weight="800" fill="#f0f6fc" textLength="300" lengthAdjust="spacingAndGlyphs">redline</text>
-  <rect x="394" y="188" width="270" height="9" rx="4.5" fill="#ff3b3b"/>
-  <text x="396" y="242" font-size="26" font-weight="500" fill="#9aa5b1" textLength="660" lengthAdjust="spacingAndGlyphs">Give your AI agent a time and money limit.</text>
+  <g transform="translate(810 118) skewX(-9) translate(-810 -118)">
+    <text x="660" y="158" font-size="82" font-weight="800" fill="#f0f6fc" textLength="300" lengthAdjust="spacingAndGlyphs">redline</text>
+  </g>
+  <rect x="490" y="178" width="640" height="9" rx="4.5" fill="#ff3b3b"/>
+  <text x="490" y="234" font-size="26" font-weight="500" fill="#9aa5b1" textLength="640" lengthAdjust="spacingAndGlyphs">Give your AI agent a time and money limit.</text>
 </svg>

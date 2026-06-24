@@ -16,6 +16,7 @@
   mono,code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
   header{text-align:center;padding:72px 0 28px}
   h1{font-size:64px;font-weight:800;letter-spacing:-2px;margin:0;display:inline-block;position:relative}
+  .rl{display:inline-block;transform:skewX(-9deg)}
   h1::after{content:"";position:absolute;left:0;right:0;bottom:-8px;height:5px;background:var(--red);border-radius:3px}
   .tag{font-size:20px;color:var(--fg);margin:34px 0 6px;font-weight:600}
   .sub{color:var(--dim);margin:0 0 26px}
@@ -43,7 +44,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>redline</h1>
+    <h1><span class="rl">redline</span></h1>
     <p class="tag">Give your AI agent a time and money limit.</p>
     <p class="sub">Set a time or dollar limit. redline paces the session to finish inside it,<br>and stops it before it runs over.</p>
     <div class="cta">
