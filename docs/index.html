@@ -25,6 +25,8 @@
   .btn.primary{background:var(--accent);color:#fff} .btn.ghost{border:1px solid var(--line);color:var(--fg)}
   /* burn-down demo */
   .demo{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:36px 0}
+  .video{position:relative;width:100%;max-width:720px;margin:30px auto 0;aspect-ratio:16/9;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+  .video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
   .demo .row{display:flex;align-items:center;gap:14px;font-family:ui-monospace,monospace;font-size:15px}
   .barwrap{flex:1;height:18px;background:#0a0e14;border-radius:9px;overflow:hidden;position:relative;border:1px solid var(--line)}
   .bar{height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,var(--green),var(--yellow) 70%,var(--red));transition:width .12s linear}
@@ -52,6 +54,11 @@
       <a class="btn ghost" href="#install">Install</a>
     </div>
     <p class="sub" id="installs" style="margin-top:18px;font-variant-numeric:tabular-nums">&nbsp;</p>
+
+    <div class="video">
+      <iframe src="https://www.youtube.com/embed/LBGoEirTrF0" title="redline demo" loading="lazy"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
 
     <div class="demo" style="text-align:center">
       <svg viewBox="0 0 420 252" width="340" style="max-width:100%">
