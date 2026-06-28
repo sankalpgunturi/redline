@@ -63,6 +63,20 @@ description: "Set/clear this session's time + token/$ budget. e.g. /redline 10m 
 `;
 fs.writeFileSync(path.join(CMD_DIR, "redline.md"), cmdMd);
 
+// Count real installs (people who ran the install command), once per machine.
+// Fire-and-forget, never blocks or fails the install. Marker => updates don't recount.
+try {
+  const marker = path.join(os.homedir(), ".claude", "redline", ".counted");
+  if (!fs.existsSync(marker)) {
+    fs.mkdirSync(path.dirname(marker), { recursive: true });
+    fs.writeFileSync(marker, new Date().toISOString());
+    const req = require("https").get("https://redline-counter.sgunturi.workers.dev/i", (r) => r.resume());
+    req.on("error", () => {});
+    req.setTimeout(2000, () => req.destroy());
+    req.unref();
+  }
+} catch {}
+
 console.log(`✅ redline installed.
    - ${slNote}
    - hooks wired: PreToolUse, UserPromptSubmit, PostToolUse, SubagentStart, SessionEnd, Stop
