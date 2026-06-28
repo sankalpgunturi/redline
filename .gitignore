@@ -1,3 +1,6 @@
 node_modules/
 *.bak
 .gstack/
+
+# wrangler local state/logs
+.wrangler/

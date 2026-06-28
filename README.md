@@ -9,6 +9,7 @@
 
 <p align="center">
   <a href="https://github.com/sankalpgunturi/redline/actions/workflows/ci.yml"><img src="https://github.com/sankalpgunturi/redline/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fredline-counter.sgunturi.workers.dev%2Fbadge" alt="installs">
   <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT">
   <img src="https://img.shields.io/badge/dependencies-zero-brightgreen.svg" alt="zero dependencies">
   <img src="https://img.shields.io/badge/Claude%20Code-native%20hooks-d97757.svg" alt="Claude Code native">

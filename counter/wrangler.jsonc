@@ -1,0 +1,9 @@
+{
+  "name": "redline-counter",
+  "main": "src/index.js",
+  "compatibility_date": "2025-06-01",
+  "workers_dev": true,
+  "kv_namespaces": [
+    { "binding": "COUNTER", "id": "e6ba099aed064e3c8c192e404b579388" }
+  ]
+}
