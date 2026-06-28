@@ -21,7 +21,7 @@
   <a href="docs/CONTRIBUTING.md">Contributing</a> ·
   <a href="docs/SECURITY.md">Security</a> ·
   <a href="docs/ARCHITECTURE.md#honest-limits">Limits</a> ·
-  <a href="assets/showcase.html">Demo</a>
+  <a href="https://youtu.be/LBGoEirTrF0">Demo</a>
 </p>
 
 ---

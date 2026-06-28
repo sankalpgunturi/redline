@@ -20,9 +20,10 @@ export default {
     const n = parseInt(await env.COUNTER.get("installs")) || 0;
 
     if (pathname === "/badge") {
+      // cacheSeconds tells shields (and GitHub's camo proxy) to refresh sooner.
       return Response.json(
-        { schemaVersion: 1, label: "installs", message: String(n), color: "red" },
-        { headers: CORS },
+        { schemaVersion: 1, label: "installs", message: String(n), color: "red", cacheSeconds: 300 },
+        { headers: { ...CORS, "cache-control": "max-age=300" } },
       );
     }
     return Response.json({ installs: n }, { headers: CORS });
