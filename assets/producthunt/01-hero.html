@@ -1,0 +1,40 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_shared.css"><style>
+  .stage { justify-content: center; }
+  .top { display:flex; align-items:center; gap:16px; margin-bottom:30px; }
+  .top .dot { width:15px; height:15px; border-radius:50%; background:#ff3b30; box-shadow:0 0 16px rgba(255,59,48,.7); }
+  .top .wm { font-size:30px; font-weight:800; letter-spacing:-1px; transform:skewX(-8deg); }
+  h1.title { font-size:62px; max-width:920px; }
+  h1.title .hl { color:#ff5a4d; }
+  .sub { font-size:24px; margin-top:20px; max-width:820px; }
+  .barbox { margin-top:48px; width:1000px; }
+  .bar-track { position:relative; height:26px; border-radius:13px; background:#1c1f24; border:1px solid #2c3038; overflow:hidden; }
+  .landing { position:absolute; right:6%; top:0; bottom:0; width:14%; background:rgba(255,210,63,.10); }
+  .bar-fill { position:absolute; left:0; top:0; bottom:0; width:90%;
+    background:linear-gradient(90deg,#21d07a 0%,#3ddc84 45%,#ffd23f 68%,#ff8c1a 86%,#ff3b30 100%); border-radius:13px; }
+  .car { position:absolute; top:-3px; left:calc(90% - 2px); width:5px; height:32px; background:#fff; border-radius:2px; box-shadow:0 0 12px rgba(255,255,255,.6); }
+  .finish { position:absolute; right:0; top:0; bottom:0; width:7px;
+    background:linear-gradient(#fff 0 25%,transparent 0 50%,#fff 0 75%,transparent 0) 0 0/4px 10px,
+      linear-gradient(transparent 0 25%,#fff 0 50%,transparent 0 75%,#fff 0) 4px 0/4px 10px,#0e0f13; }
+  .readout { display:flex; justify-content:space-between; margin-top:16px; font-size:17px; letter-spacing:1px; }
+  .readout .land { color:#caa84a; } .readout .l { color:#7a828c; }
+  .stat { display:flex; gap:40px; margin-top:46px; }
+  .stat .chip { display:flex; align-items:center; gap:12px; font-size:21px; font-weight:600; }
+  .stat .chip .ic { font-size:24px; }
+</style></head><body>
+<div class="stage">
+  <div class="top"><span class="dot"></span><span class="wm">redline</span></div>
+  <h1 class="title">Give your AI coding agent a <span class="hl">time and money limit.</span></h1>
+  <p class="sub">Set a budget inside Claude Code. It paces itself to finish inside it, and never gets killed mid-task.</p>
+  <div class="barbox">
+    <div class="bar-track">
+      <div class="landing"></div><div class="bar-fill"></div><div class="car"></div><div class="finish"></div>
+    </div>
+    <div class="readout mono"><span class="l">START</span><span class="land">LANDING ZONE · 90%</span></div>
+  </div>
+  <div class="stat">
+    <div class="chip"><span class="ic">🔴</span> Never over budget</div>
+    <div class="chip"><span class="ic">🏁</span> Under is success</div>
+    <div class="chip"><span class="ic">🪂</span> Never an abrupt kill</div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1280px; height:800px; overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+  .stage { width:1280px; height:800px; position:relative;
+    background:url('product-frame.png') center 18% / cover no-repeat; }
+  .scrim { position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,9,12,.62) 0%, rgba(8,9,12,0) 22%, rgba(8,9,12,0) 50%, rgba(8,9,12,.92) 72%, rgba(8,9,12,1) 82%); }
+  .top { position:absolute; top:46px; left:56px; display:flex; align-items:center; gap:13px; }
+  .top .dot { width:14px; height:14px; border-radius:50%; background:#ff3b30; box-shadow:0 0 14px rgba(255,59,48,.8); }
+  .top .wm { font-size:26px; font-weight:800; letter-spacing:-.5px; color:#fff; transform:skewX(-8deg); }
+  .cap { position:absolute; left:56px; right:56px; bottom:54px; }
+  .cap .kicker { font-size:14px; letter-spacing:3px; text-transform:uppercase; color:#ff7a70; font-weight:700; margin-bottom:12px; }
+  .cap h1 { font-size:44px; font-weight:800; letter-spacing:-1.5px; color:#f4f7fa; line-height:1.06; max-width:1000px; }
+  .cap .accent { width:96px; height:6px; border-radius:3px; background:#ff3b30; margin-top:18px; box-shadow:0 0 16px rgba(255,59,48,.6); }
+</style></head><body>
+<div class="stage">
+  <div class="scrim"></div>
+  <div class="top"><span class="dot"></span><span class="wm">redline</span></div>
+  <div class="cap">
+    <div class="kicker">live in your statusline</div>
+    <h1>A burn-down bar that counts down time, dollars, and tokens as the agent works.</h1>
+    <div class="accent"></div>
+  </div>
+</div>
+</body></html>

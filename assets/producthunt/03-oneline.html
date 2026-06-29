@@ -1,0 +1,38 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_shared.css"><style>
+  .stage { justify-content:center; }
+  .head { margin-bottom:34px; }
+  .kicker { margin-bottom:14px; }
+  h1.title { font-size:46px; }
+  .term { width:1136px; align-self:center; }
+  .term .body { font-size:18px; line-height:1.85; }
+  .cmd { background:rgba(255,255,255,.06); border-radius:6px; padding:2px 0; }
+  .statusbar { margin-top:18px; padding-top:16px; border-top:1px solid #23272e; }
+  .statusbar .pill { color:#3fb950; font-weight:700; }
+  .barchars { letter-spacing:-1px; }
+  .note { text-align:center; margin-top:26px; font-size:16px; color:#7c858f; }
+  .note b { color:#ff6a60; }
+</style></head><body>
+<div class="stage">
+  <div class="head">
+    <div class="kicker">one line, any session</div>
+    <h1 class="title">Set a budget without leaving Claude Code.</h1>
+  </div>
+  <div class="term">
+    <div class="titlebar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="t">Fix server 500 errors in chess deploy</span></div>
+    <div class="body">
+      <div><span class="prompt">&rsaquo;</span> <span class="white cmd">/redline 10m $5</span></div>
+      <div class="dim">&nbsp;&nbsp;1 skill available</div>
+      <div style="height:10px"></div>
+      <div><span class="green">●</span> <span class="gray">PLAN: reproduce crash (3m) &rarr; root cause (HIGH) &rarr; fix (3m) &rarr; verify build+start (2.5m) &rarr; summarise (1.5m reserve). Feasible.</span></div>
+      <div style="height:6px"></div>
+      <div><span class="green">●</span> <span class="gray">Running 1 shell command&hellip;</span></div>
+      <div><span class="red">✳</span> <span class="red">Actioning&hellip;</span> <span class="dim">(4s · ↓ 83 tokens)</span></div>
+      <div class="statusbar">
+        <span class="pill">redline 💰</span> <span class="green barchars">████▎</span><span class="dim barchars">···············</span>
+        <span class="green">&nbsp;5%</span> <span class="dim">·</span> <span class="green">⏱ 9:56 left</span> <span class="dim">·</span> <span class="green">💰 $4.71 left</span>
+      </div>
+    </div>
+  </div>
+  <p class="note">Whichever limit is closest drives the bar. <b>One budget</b> covers every subagent the session spawns.</p>
+</div>
+</body></html>
