@@ -1,0 +1,28 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1280px; height:800px; overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+  .stage { width:1280px; height:800px; position:relative;
+    background:url('payoff-frame.png') center 28% / cover no-repeat; }
+  .scrim { position:absolute; inset:0; background:linear-gradient(90deg, rgba(8,9,12,.78) 0%, rgba(8,9,12,.42) 42%, rgba(8,9,12,0) 70%); }
+  .top { position:absolute; top:46px; left:56px; display:flex; align-items:center; gap:13px; }
+  .top .dot { width:14px; height:14px; border-radius:50%; background:#ff3b30; box-shadow:0 0 14px rgba(255,59,48,.8); }
+  .top .wm { font-size:26px; font-weight:800; letter-spacing:-.5px; color:#fff; transform:skewX(-8deg); }
+  .cap { position:absolute; left:56px; top:50%; transform:translateY(-50%); max-width:620px; }
+  .cap .kicker { font-size:14px; letter-spacing:3px; text-transform:uppercase; color:#ff7a70; font-weight:700; margin-bottom:16px; }
+  .cap h1 { font-size:58px; font-weight:800; letter-spacing:-2px; color:#f4f7fa; line-height:1.04; }
+  .cap h1 .hl { color:#ff5a4d; }
+  .cap p { font-size:21px; color:#cdd4dc; margin-top:22px; line-height:1.5; }
+  .cap .accent { width:96px; height:6px; border-radius:3px; background:#ff3b30; margin-top:26px; box-shadow:0 0 16px rgba(255,59,48,.6); }
+</style></head><body>
+<div class="stage">
+  <div class="scrim"></div>
+  <div class="top"><span class="dot"></span><span class="wm">redline</span></div>
+  <div class="cap">
+    <div class="kicker">under is success</div>
+    <h1>Walk away.<br>Come back to a job <span class="hl">done on budget.</span></h1>
+    <p>No more sessions that quietly burn an hour and ten dollars on a ten-minute task.</p>
+    <div class="accent"></div>
+  </div>
+</div>
+</body></html>

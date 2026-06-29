@@ -9,5 +9,5 @@
     <text x="660" y="158" font-size="82" font-weight="800" fill="#f0f6fc" textLength="300" lengthAdjust="spacingAndGlyphs">redline</text>
   </g>
   <rect x="490" y="178" width="640" height="9" rx="4.5" fill="#ff3b3b"/>
-  <text x="490" y="234" font-size="26" font-weight="500" fill="#9aa5b1" textLength="640" lengthAdjust="spacingAndGlyphs">Give your AI agent a time and money limit.</text>
+  <text x="490" y="234" font-size="26" font-weight="500" fill="#9aa5b1" textLength="640" lengthAdjust="spacingAndGlyphs">Token and time budgeting for Claude Code.</text>
 </svg>
