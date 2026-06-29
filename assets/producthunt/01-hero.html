@@ -1,37 +1,70 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_shared.css"><style>
-  .stage { justify-content: center; }
-  .top { display:flex; align-items:center; gap:16px; margin-bottom:30px; }
-  .top .dot { width:15px; height:15px; border-radius:50%; background:#ff3b30; box-shadow:0 0 16px rgba(255,59,48,.7); }
-  .top .wm { font-size:30px; font-weight:800; letter-spacing:-1px; transform:skewX(-8deg); }
-  h1.title { font-size:62px; max-width:920px; }
-  h1.title .hl { color:#ff5a4d; }
-  .sub { font-size:24px; margin-top:20px; max-width:820px; }
-  .barbox { margin-top:48px; width:1000px; }
-  .bar-track { position:relative; height:26px; border-radius:13px; background:#1c1f24; border:1px solid #2c3038; overflow:hidden; }
+  .stage { justify-content:center; align-items:center; text-align:center; }
+  .gauge { width:188px; margin-bottom:6px; }
+  .wm { font-size:88px; font-weight:800; letter-spacing:-5px; transform:skewX(-9deg); line-height:.9; }
+  .stripe { width:320px; height:11px; border-radius:6px; background:#ff3b30; box-shadow:0 0 26px rgba(255,59,48,.6); margin-top:14px; }
+  .tagline { font-size:32px; font-weight:600; color:#cfd5dc; margin-top:34px; }
+  .tagline b { color:#ff5a4d; font-weight:700; }
+  .barbox { margin-top:46px; width:920px; }
+  .bar-track { position:relative; height:24px; border-radius:12px; background:#1c1f24; border:1px solid #2c3038; overflow:hidden; }
   .landing { position:absolute; right:6%; top:0; bottom:0; width:14%; background:rgba(255,210,63,.10); }
   .bar-fill { position:absolute; left:0; top:0; bottom:0; width:90%;
-    background:linear-gradient(90deg,#21d07a 0%,#3ddc84 45%,#ffd23f 68%,#ff8c1a 86%,#ff3b30 100%); border-radius:13px; }
-  .car { position:absolute; top:-3px; left:calc(90% - 2px); width:5px; height:32px; background:#fff; border-radius:2px; box-shadow:0 0 12px rgba(255,255,255,.6); }
+    background:linear-gradient(90deg,#21d07a 0%,#3ddc84 45%,#ffd23f 68%,#ff8c1a 86%,#ff3b30 100%); border-radius:12px; }
+  .car { position:absolute; top:-3px; left:calc(90% - 2px); width:5px; height:30px; background:#fff; border-radius:2px; box-shadow:0 0 12px rgba(255,255,255,.6); }
   .finish { position:absolute; right:0; top:0; bottom:0; width:7px;
     background:linear-gradient(#fff 0 25%,transparent 0 50%,#fff 0 75%,transparent 0) 0 0/4px 10px,
       linear-gradient(transparent 0 25%,#fff 0 50%,transparent 0 75%,#fff 0) 4px 0/4px 10px,#0e0f13; }
-  .readout { display:flex; justify-content:space-between; margin-top:16px; font-size:17px; letter-spacing:1px; }
+  .readout { display:flex; justify-content:space-between; margin-top:14px; font-size:16px; letter-spacing:1px; }
   .readout .land { color:#caa84a; } .readout .l { color:#7a828c; }
-  .stat { display:flex; gap:40px; margin-top:46px; }
-  .stat .chip { display:flex; align-items:center; gap:12px; font-size:21px; font-weight:600; }
-  .stat .chip .ic { font-size:24px; }
+  .tenets { display:flex; gap:44px; margin-top:48px; }
+  .tenets .chip { display:flex; align-items:center; gap:12px; font-size:21px; font-weight:600; }
+  .tenets .chip .ic { font-size:24px; }
 </style></head><body>
 <div class="stage">
-  <div class="top"><span class="dot"></span><span class="wm">redline</span></div>
-  <h1 class="title">Give your AI coding agent a <span class="hl">time and money limit.</span></h1>
-  <p class="sub">Set a budget inside Claude Code. It paces itself to finish inside it, and never gets killed mid-task.</p>
+  <svg class="gauge" viewBox="0 0 320 200" aria-label="tachometer">
+    <defs>
+      <linearGradient id="arc" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0" stop-color="#21d07a"/><stop offset="0.55" stop-color="#ffd23f"/>
+        <stop offset="0.8" stop-color="#ff8c1a"/><stop offset="1" stop-color="#ff3b30"/>
+      </linearGradient>
+      <linearGradient id="needle" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#f4f6f8"/><stop offset="1" stop-color="#c4cad1"/>
+      </linearGradient>
+      <filter id="rg" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5"/></filter>
+    </defs>
+    <g transform="translate(160,168)">
+      <g stroke="#5b626b" stroke-width="2.4" stroke-linecap="round">
+        <line x1="0" y1="-118" x2="0" y2="-136" transform="rotate(-90)"/>
+        <line x1="0" y1="-118" x2="0" y2="-136" transform="rotate(-67.5)"/>
+        <line x1="0" y1="-118" x2="0" y2="-136" transform="rotate(-45)"/>
+        <line x1="0" y1="-118" x2="0" y2="-136" transform="rotate(-22.5)"/>
+        <line x1="0" y1="-118" x2="0" y2="-136" transform="rotate(0)"/>
+        <line x1="0" y1="-118" x2="0" y2="-136" transform="rotate(22.5)"/>
+        <line x1="0" y1="-118" x2="0" y2="-136" transform="rotate(45)"/>
+      </g>
+      <g stroke="#ff3b30" stroke-width="3.4" stroke-linecap="round">
+        <line x1="0" y1="-118" x2="0" y2="-138" transform="rotate(67.5)"/>
+        <line x1="0" y1="-118" x2="0" y2="-138" transform="rotate(90)"/>
+      </g>
+      <path d="M -124 0 A 124 124 0 0 1 124 0" fill="none" stroke="#23262c" stroke-width="17" stroke-linecap="round"/>
+      <path d="M -124 0 A 124 124 0 0 1 124 0" fill="none" stroke="url(#arc)" stroke-width="11" stroke-linecap="round"/>
+      <path d="M 114.97 -46.45 A 124 124 0 0 1 124 0" fill="none" stroke="#ff3b30" stroke-width="16" filter="url(#rg)"/>
+      <path d="M 114.97 -46.45 A 124 124 0 0 1 124 0" fill="none" stroke="#ff3b30" stroke-width="12"/>
+      <g transform="rotate(58)"><polygon points="-5,7 5,7 1.6,-132 -1.6,-132" fill="url(#needle)"/></g>
+      <circle r="15" fill="#1a1d22" stroke="#3a3f47" stroke-width="2.5"/>
+      <circle r="6" fill="#ff3b30"/>
+    </g>
+  </svg>
+  <div class="wm">redline</div>
+  <div class="stripe"></div>
+  <p class="tagline">Token and time budgeting for <b>Claude Code</b>.</p>
   <div class="barbox">
     <div class="bar-track">
       <div class="landing"></div><div class="bar-fill"></div><div class="car"></div><div class="finish"></div>
     </div>
     <div class="readout mono"><span class="l">START</span><span class="land">LANDING ZONE · 90%</span></div>
   </div>
-  <div class="stat">
+  <div class="tenets">
     <div class="chip"><span class="ic">🔴</span> Never over budget</div>
     <div class="chip"><span class="ic">🏁</span> Under is success</div>
     <div class="chip"><span class="ic">🪂</span> Never an abrupt kill</div>
