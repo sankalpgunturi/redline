@@ -8,6 +8,7 @@
 </p>
 
 <p align="center">
+  <a href="https://www.producthunt.com/products/redline-5"><img src="https://img.shields.io/badge/Product%20Hunt-redline-da552f.svg?logo=producthunt&logoColor=white" alt="Product Hunt"></a>
   <a href="https://github.com/sankalpgunturi/redline/actions/workflows/ci.yml"><img src="https://github.com/sankalpgunturi/redline/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fredline-counter.sgunturi.workers.dev%2Fbadge" alt="installs">
   <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT">
