@@ -1,6 +1,6 @@
 {
   "name": "redline-cc",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "Token and time budgeting for Claude Code. It paces the session to finish inside the budget.",
   "bin": { "redline": "bin/redline" },
   "files": ["bin", "commands", "install.sh"],
