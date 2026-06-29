@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="redline: give your AI agent a time and money limit" width="100%">
+  <img src="assets/banner.svg" alt="redline: token and time budgeting for Claude Code" width="100%">
 </p>
 
 <p align="center">
-  <b>Give your AI agent a time and money limit.</b><br>
+  <b>Token and time budgeting for Claude Code.</b><br>
   Set a limit. redline paces the session to finish inside it, and stops it before it runs over.
 </p>
 

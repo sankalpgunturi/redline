@@ -1,7 +1,7 @@
 {
   "name": "redline-cc",
   "version": "0.1.1",
-  "description": "Give your AI agent a time and money limit. It paces itself to finish inside it.",
+  "description": "Token and time budgeting for Claude Code. It paces the session to finish inside the budget.",
   "bin": { "redline": "bin/redline" },
   "files": ["bin", "commands", "install.sh"],
   "scripts": { "test": "bash test/test.sh" },
