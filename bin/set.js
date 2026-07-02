@@ -57,6 +57,10 @@ const cfg = { set_at: Math.floor(Date.now() / 1000) };
 let wantSevenDay = false;
 const unknown = [];
 
+// Every recognized-format token must contribute a strictly positive value, or it's
+// rejected below - this is how negative and zero-value budgets get caught, without a
+// separate validation pass (e.g. "$0", "-100", "0m" are all indistinguishable in intent
+// from "not a budget" and get the same clear rejection as a token we can't parse at all).
 for (const t of tokens) {
   if (/^7d(ay)?$/i.test(t)) { wantSevenDay = true; continue; }
   if (/^\$/.test(t)) {
@@ -64,25 +68,36 @@ for (const t of tokens) {
     if (v > 0) cfg.dollars = v; else unknown.push(t);
   } else if (/%$/.test(t) || /%(7d|7day)$/i.test(t)) {
     const m = t.match(/^(\d+(?:\.\d+)?)%/);
-    if (m) { cfg.plan_pct = parseFloat(m[1]); if (/7d/i.test(t)) wantSevenDay = true; }
+    if (m && parseFloat(m[1]) > 0) { cfg.plan_pct = parseFloat(m[1]); if (/7d/i.test(t)) wantSevenDay = true; }
     else unknown.push(t);
   } else if (/^\d+(?:\.\d+)?k$/i.test(t)) {
-    cfg.tokens = Math.round(parseFloat(t) * 1e3);
+    const v = Math.round(parseFloat(t) * 1e3);
+    if (v > 0) cfg.tokens = v; else unknown.push(t);
   } else if (/^\d+(?:\.\d+)?M$/.test(t)) { // capital M = million tokens
-    cfg.tokens = Math.round(parseFloat(t) * 1e6);
-  } else if (/^(\d+\s*[hmsd])+$/i.test(t.replace(/\s+/g, ""))) {
+    const v = Math.round(parseFloat(t) * 1e6);
+    if (v > 0) cfg.tokens = v; else unknown.push(t);
+  } else if (/^(\d+(?:\.\d+)?\s*[hmsd])+$/i.test(t.replace(/\s+/g, ""))) { // e.g. 2.5h, 1h30m, 90m
     let sec = 0;
-    for (const m of t.matchAll(/(\d+)\s*([hmsd])/gi)) {
-      const n = parseInt(m[1], 10);
+    for (const m of t.matchAll(/(\d+(?:\.\d+)?)\s*([hmsd])/gi)) {
+      const n = parseFloat(m[1]);
       const u = m[2].toLowerCase();
       sec += n * (u === "h" ? 3600 : u === "m" ? 60 : u === "d" ? 86400 : 1);
     }
-    cfg.duration_sec = (cfg.duration_sec || 0) + sec;
+    if (sec > 0) cfg.duration_sec = Math.round((cfg.duration_sec || 0) + sec);
+    else unknown.push(t);
   } else if (/^\d+$/.test(t) && parseInt(t, 10) >= 1000) {
     cfg.tokens = parseInt(t, 10); // bare large integer = token count
   } else {
     unknown.push(t);
   }
+}
+
+if (unknown.length) {
+  console.error(
+    "redline: couldn't parse " + unknown.map((u) => JSON.stringify(u)).join(", ") + " in " + JSON.stringify(argStr) + ".\n" +
+    "Budgets must be positive. Examples:  /redline 10m   |   /redline 2.5h   |   /redline 30m $5   |   /redline 1h 200k   |   /redline 45m 10%   |   /redline off"
+  );
+  process.exit(1);
 }
 
 if (cfg.plan_pct != null) cfg.plan_window = wantSevenDay ? "seven_day" : "five_hour";
