@@ -13,3 +13,5 @@ jobs:
         run: for f in bin/*.js; do node --check "$f"; done
       - name: Self-check
         run: bash test/test.sh
+      - name: Parser use-case suite
+        run: bash test/parser-cases.sh

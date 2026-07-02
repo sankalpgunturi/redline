@@ -4,7 +4,7 @@
   "description": "Token and time budgeting for Claude Code. It paces the session to finish inside the budget.",
   "bin": { "redline": "bin/redline" },
   "files": ["bin", "commands", "install.sh"],
-  "scripts": { "test": "bash test/test.sh" },
+  "scripts": { "test": "bash test/test.sh && bash test/parser-cases.sh" },
   "keywords": ["claude-code", "claude", "ai", "budget", "tokens", "cost", "cli", "hooks", "llm", "developer-tools"],
   "homepage": "https://github.com/sankalpgunturi/redline",
   "repository": { "type": "git", "url": "https://github.com/sankalpgunturi/redline.git" },
