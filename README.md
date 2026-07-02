@@ -60,6 +60,11 @@ Needs the Node that ships with Claude Code. Pick one, then restart Claude Code:
 brew install sankalpgunturi/redline/redline && redline install
 ```
 
+**npm** (package is `redline-cc` - `redline` was already taken on npm; the installed command is still `redline`)
+```bash
+npm install -g redline-cc && redline install
+```
+
 **curl**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sankalpgunturi/redline/main/install.sh | bash
