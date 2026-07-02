@@ -6,21 +6,42 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 
 const REPO = path.resolve(__dirname, "..");
 const CLAUDE = path.join(os.homedir(), ".claude");
 const SETTINGS = path.join(CLAUDE, "settings.json");
 const CMD_DIR = path.join(CLAUDE, "commands");
 
+// Cross-platform PATH scan (no shell-out) - works without /bin/bash, so it's safe on
+// native Windows (cmd/PowerShell), not just Homebrew/Linux/macOS/Git Bash.
+function findOnPath(name) {
+  const dirs = (process.env.PATH || "").split(path.delimiter);
+  const exts = process.platform === "win32" ? [...(process.env.PATHEXT || ".EXE;.CMD;.BAT").split(";"), ""] : [""];
+  for (const dir of dirs) {
+    for (const ext of exts) {
+      const candidate = path.join(dir, name + ext);
+      try { if (fs.statSync(candidate).isFile()) return candidate; } catch {}
+    }
+  }
+  return null;
+}
+
 // Prefer a `redline` on PATH if it's ours (stable across upgrades, e.g. Homebrew's
-// /opt/.../bin/redline symlink); otherwise use this repo's absolute dispatcher.
+// /opt/.../bin/redline symlink, or npm's global shim); otherwise use this repo's
+// absolute dispatcher.
 function resolveDispatcher() {
   const local = path.join(REPO, "bin", "redline");
-  try {
-    const w = execSync("command -v redline 2>/dev/null || true", { shell: "/bin/bash" }).toString().trim();
-    if (w && /^redline /.test(execSync(`"${w}" version 2>/dev/null || true`, { shell: "/bin/bash" }).toString())) return w;
-  } catch {}
+  const found = findOnPath("redline");
+  if (found) {
+    try {
+      // Node auto-shells .cmd/.bat on Windows for execFile* - no shell:true needed
+      // (that option also can't help here anyway: a bare extensionless file, e.g. an
+      // install.sh-created symlink to a bash script, still isn't runnable by cmd.exe).
+      const out = execFileSync(found, ["version"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+      if (/^redline /.test(out)) return found;
+    } catch {}
+  }
   return local;
 }
 const RL = resolveDispatcher();
