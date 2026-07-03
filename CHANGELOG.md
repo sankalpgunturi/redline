@@ -2,7 +2,7 @@
 
 All notable changes are documented here. Format: [Keep a Changelog](https://keepachangelog.com).
 
-## [Unreleased]
+## [0.2.0] - 2026-07-02
 
 ### Changed
 - **BREAKING: plan `%` budgets are now absolute ceilings.** `/redline 80%` means "stop when the window hits 80% used" - anchored to your plan's current state, so a half-burned window shows up half-burned instead of a bar that starts at 0%. The old relative semantic ("N more points from now") moved to `/redline +N%`.
