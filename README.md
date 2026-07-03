@@ -80,10 +80,14 @@ It backs up your settings, never clobbers an existing statusline, and is safe to
 | `/redline $5` | $5 |
 | `/redline 30m $5` | 30 min and $5 |
 | `/redline 1h 200k` | 1 hour and 200k tokens |
-| `/redline 45m 10%` | 45 min and 10% of your plan |
+| `/redline 80%` | plan ceiling: stop when your 5-hour window hits 80% used |
+| `/redline +10%` | plan allowance: spend 10 more points of the window from now |
+| `/redline 80% 7d` | ceiling on the 7-day window instead |
 | `/redline off` | clear |
 
 Whichever dimension is closest to its limit drives the bar (tagged with its gauge). Each one counts down, like `⏱ 1:00 left` and `💰 $1.85 left`.
+
+Plan `%` budgets are anchored to your plan's **current state**: `/redline 80%` when the window is already 52% used starts the bar at 52/80, shows the absolute window level plus its reset countdown (`plan 52% ↺1:23`), and tells you your headroom when you set it. Even with no budget set, the statusline shows where your window sits. As a bonus, redline observes what 1% of *your* plan actually costs in tokens (`1% ≈ 85k tok` in `redline pulse`) - the number the usage page doesn't tell you.
 
 ## Commands
 

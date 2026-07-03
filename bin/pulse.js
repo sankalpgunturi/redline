@@ -37,7 +37,8 @@ function activeSessions(now) {
     if (cfg.duration_sec) dims.push("⏱ " + lib.fmtDuration(Math.max(0, cfg.duration_sec - lib.timeUsedSec(cfg, now, st.turn_start, st.overshoot_sec))) + " left");
     if (cfg.dollars) dims.push("💰 $" + Math.max(0, cfg.dollars - r.costUsd).toFixed(2) + " left");
     if (cfg.tokens) dims.push("🔤 " + lib.fmtTokens(Math.max(0, cfg.tokens - r.tokens)) + " left");
-    if (cfg.plan_pct != null && r.planNow != null && r.baselinePlan != null) dims.push("📊 " + Math.max(0, cfg.plan_pct - (r.planNow - r.baselinePlan)).toFixed(1) + "% left");
+    const pl = lib.planLeft(cfg, r.planNow, r.baselinePlan);
+    if (pl != null) dims.push("📊 " + Math.max(0, pl).toFixed(1) + "% left");
     const label = st.name || (st.cwd ? path.basename(st.cwd) : id.slice(0, 6));
     out.push({ label, overall, dims, fresh: st.ts ? now - st.ts < 300 : false });
   }
@@ -52,6 +53,22 @@ function history() {
 function render() {
   const now = Math.floor(Date.now() / 1000);
   const L = ["", "  " + C.bold + "redline · pulse" + C.reset, ""];
+
+  // Plan window: the numbers Anthropic only shows as opaque percentages -
+  // where each window sits, when it resets, and what 1% costs in tokens (observed).
+  const snap = lib.readJSON(lib.planPath());
+  if (snap && snap.ts && now - snap.ts < 24 * 3600) {
+    L.push("  " + C.dim + "PLAN WINDOW" + C.reset);
+    for (const [w, label] of [["five_hour", "5-hour"], ["seven_day", "7-day "]]) {
+      const p = snap[w]; if (!p) continue;
+      const c = col(p.pct / 100);
+      const bits = [c + p.pct.toFixed(1) + "% used" + C.reset];
+      if (p.resets_at) bits.push("resets in " + lib.fmtDuration(p.resets_at - now));
+      if (p.tok_per_pct) bits.push("1% ≈ " + lib.fmtTokens(p.tok_per_pct) + " tok");
+      L.push("    📊 " + label + " " + c + bar(p.pct / 100) + C.reset + "  " + bits.join(C.dim + " · " + C.reset));
+    }
+    L.push("");
+  }
 
   const sess = activeSessions(now);
   L.push("  " + C.dim + "ACTIVE BUDGETS" + C.reset);
