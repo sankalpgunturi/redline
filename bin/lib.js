@@ -72,6 +72,21 @@ function fractions(cfg, now, r = {}) {
   return { f, overall: vals.length ? Math.max(...vals) : 0 };
 }
 
+// Median burn across finished sessions (history.jsonl), for the set-time forecast.
+// null until there are 3 usable sessions - no forecast beats a made-up one.
+function typicalBurn() {
+  let recs = [];
+  try { recs = fs.readFileSync(historyPath(), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)); } catch {}
+  const ok = recs.filter((r) => r.final && r.final.elapsed_sec > 60);
+  if (ok.length < 3) return null;
+  const med = (a) => { const s = a.filter((x) => Number.isFinite(x) && x > 0).sort((x, y) => x - y); return s.length ? s[(s.length - 1) >> 1] : null; };
+  return {
+    n: ok.length,
+    tokMin: med(ok.map((r) => r.final.tokens / (r.final.elapsed_sec / 60))),
+    usdMin: med(ok.map((r) => r.final.cost_usd / (r.final.elapsed_sec / 60))),
+  };
+}
+
 function burnRate(st, cfg, now) {
   const used = st.tokens || 0, elapsed = now - (cfg.set_at || now);
   return used > 0 && elapsed > 0 ? used / elapsed : null;
@@ -131,5 +146,5 @@ function fmtTokens(n) {
 
 module.exports = {
   DIR, ensureDir, cfgPath, statePath, pendingPath, historyPath, planPath, readJSON, writeJSON, appendHistory,
-  sumTranscriptTokens, timeUsedSec, planLeft, fractions, burnRate, tokensLeft, retire, round2, fmtDuration, fmtTokens,
+  sumTranscriptTokens, timeUsedSec, planLeft, fractions, burnRate, typicalBurn, tokensLeft, retire, round2, fmtDuration, fmtTokens,
 };

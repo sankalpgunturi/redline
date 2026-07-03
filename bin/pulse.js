@@ -21,7 +21,10 @@ function bar(frac, w = 20) {
   return s + C.gray + "·".repeat(Math.max(0, w - full - 1)) + C.reset;
 }
 
-function activeSessions(now) {
+function activeSessions(now, snap) {
+  // Which session is eating the plan: tokens spent / observed tokens-per-1% ≈ this
+  // session's share of the shared window. An estimate (cache reads weigh less), so ~.
+  const tpp = snap && snap.five_hour && snap.five_hour.tok_per_pct;
   let files = [];
   try { files = fs.readdirSync(lib.DIR); } catch {}
   const out = [];
@@ -39,6 +42,7 @@ function activeSessions(now) {
     if (cfg.tokens) dims.push("🔤 " + lib.fmtTokens(Math.max(0, cfg.tokens - r.tokens)) + " left");
     const pl = lib.planLeft(cfg, r.planNow, r.baselinePlan);
     if (pl != null) dims.push("📊 " + Math.max(0, pl).toFixed(1) + "% left");
+    if (tpp && r.tokens) dims.push("~" + (r.tokens / tpp).toFixed(1) + "% of plan");
     const label = st.name || (st.cwd ? path.basename(st.cwd) : id.slice(0, 6));
     out.push({ label, overall, dims, fresh: st.ts ? now - st.ts < 300 : false });
   }
@@ -57,7 +61,8 @@ function render() {
   // Plan window: the numbers Anthropic only shows as opaque percentages -
   // where each window sits, when it resets, and what 1% costs in tokens (observed).
   const snap = lib.readJSON(lib.planPath());
-  if (snap && snap.ts && now - snap.ts < 24 * 3600) {
+  const snapFresh = snap && snap.ts && now - snap.ts < 24 * 3600 ? snap : null;
+  if (snapFresh) {
     L.push("  " + C.dim + "PLAN WINDOW" + C.reset);
     for (const [w, label] of [["five_hour", "5-hour"], ["seven_day", "7-day "]]) {
       const p = snap[w]; if (!p) continue;
@@ -70,7 +75,7 @@ function render() {
     L.push("");
   }
 
-  const sess = activeSessions(now);
+  const sess = activeSessions(now, snapFresh);
   L.push("  " + C.dim + "ACTIVE BUDGETS" + C.reset);
   if (!sess.length) L.push("    " + C.dim + "none · set one in any session with /redline 10m $5" + C.reset);
   for (const s of sess) {

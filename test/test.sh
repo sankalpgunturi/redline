@@ -132,4 +132,28 @@ grep -q '"overshoot_pct":20' "$D/history.jsonl" || fail "overshoot not computed"
 # 13. pulse reads history (the track-record section)
 node "$BIN/pulse.js" --once | grep -qi "kept you on track" || fail "pulse broken"
 
+# 14. HEADLESS: token budget enforces with NO statusline state (hook sums transcripts itself)
+setcfg "{\"session_id\":\"$SID\",\"set_at\":$(now),\"tokens\":1000}"
+hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Bash\",\"transcript_path\":\"$PROJ2/t.jsonl\"}" | grep -q '"continue":false' || fail "headless token budget not enforced (3000 tok vs 1000 budget)"
+
+# 15. ATTRIBUTION: pulse estimates each session's share of the plan window
+setcfg "{\"session_id\":\"$SID\",\"set_at\":$(now),\"duration_sec\":600}"
+setstate "{\"ts\":$(now),\"tokens\":5000}"
+echo "{\"five_hour\":{\"pct\":10,\"tok_per_pct\":1000},\"ts\":$(now)}" > "$D/plan.json"
+node "$BIN/pulse.js" --once | grep -q -- "~5.0% of plan" || fail "pulse missing per-session plan attribution"
+
+# 16. DOCTOR: flags a missing/foreign statusline, passes when redline is wired
+node -e 'const fs=require("fs"),os=require("os"),p=require("path");const s={statusLine:{command:"other-statusline"},hooks:{}};fs.writeFileSync(p.join(os.homedir(),".claude","settings.json"),JSON.stringify(s))'
+node "$BIN/doctor.js" > /tmp/doc.$$ 2>&1 && fail "doctor should exit 1 with foreign statusline" || true
+grep -q "NO live sensor" /tmp/doc.$$ || fail "doctor missed the dead-sensor case"
+node -e 'const fs=require("fs"),os=require("os"),p=require("path");const h={hooks:[{type:"command",command:"redline hook"}]};const s={statusLine:{command:"redline statusline"},hooks:{PreToolUse:[h],UserPromptSubmit:[h],PostToolUse:[h],SubagentStart:[h],SessionEnd:[h],Stop:[h]}};fs.writeFileSync(p.join(os.homedir(),".claude","settings.json"),JSON.stringify(s));fs.mkdirSync(p.join(os.homedir(),".claude","commands"),{recursive:true});fs.writeFileSync(p.join(os.homedir(),".claude","commands","redline.md"),"x")'
+node "$BIN/doctor.js" | grep -q "all 6 hooks wired" || fail "doctor did not pass a wired install"
+rm -f /tmp/doc.$$
+
+# 17. FORECAST: set-time echo from median burn once history has 3+ sessions
+rm -f "$D/history.jsonl"
+for i in 1 2 3; do echo "{\"final\":{\"tokens\":60000,\"cost_usd\":1.2,\"elapsed_sec\":600}}" >> "$D/history.jsonl"; done
+node "$BIN/set.js" "10m" "$SID" | grep -q "typical burn" || fail "no forecast with 3 sessions of history"
+node "$BIN/set.js" "600k" "$SID" | grep -q "≈ 100 min" || fail "token budget forecast wrong (600k at 6k tok/min should be ~100 min)"
+
 echo "PASS: redline v2 self-check (ledger+tiers+native signal · enforcement · umbrella · analytics)"

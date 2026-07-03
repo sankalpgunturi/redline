@@ -59,7 +59,7 @@ One budget covers the whole session. Users never set per-subagent budgets.
 - **Token / $ / plan are the precise guarantee** - spend only accrues with work, and the lock catches it with reserve to spare.
 - **Wall-clock time is best-effort.** The clock advances while the model generates; the lock can only fire at a tool attempt or turn boundary. On realistic budgets (minutes) checkpoints are frequent enough to land cleanly under; on absurdly tight budgets (seconds, smaller than one turn) the clock can pass the line between checkpoints. A periodic statusline-driven time guard is on the roadmap.
 - **Statusline refresh caps at 1s** - Claude Code re-renders the statusline on events plus a `refreshInterval` whose minimum is 1 second; it cannot tick sub-second. For a live multi-session view (and a smoother display) run `redline pulse` in a split pane.
-- **Live $/token/plan need an interactive session** - the statusline (the sensor) doesn't render in headless `claude -p`, where only time is live.
+- **Live $/plan need an interactive session** - the statusline (the sensor) doesn't render in headless `claude -p`. Time always works, and **token budgets work headless too**: when the state snapshot is missing or stale, the hook sums the transcripts itself and enforces from that.
 
 ## Mirroring Anthropic's `taskBudget`
 

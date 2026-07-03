@@ -6,12 +6,13 @@
 // across upgrades (e.g. Homebrew repointing its symlink).
 const path = require("path");
 
-const MAP = { install: "install.js", uninstall: "uninstall.js", pulse: "pulse.js", stats: "pulse.js", hook: "hook.js", statusline: "statusline.js", set: "set.js" };
+const MAP = { install: "install.js", uninstall: "uninstall.js", pulse: "pulse.js", stats: "pulse.js", doctor: "doctor.js", hook: "hook.js", statusline: "statusline.js", set: "set.js" };
 const HELP = `redline - time + token/$ budgets for Claude Code
 
   redline install      wire redline into Claude Code (statusline + hooks + /redline)
   redline uninstall    remove redline from Claude Code
   redline pulse        live budgets across sessions + how often you stayed on track
+  redline doctor       check the wiring: hooks, statusline sensor, plan feed
   redline version
 
 Then, inside Claude Code, set a budget any time:  /redline 10m $5   ·   /redline off

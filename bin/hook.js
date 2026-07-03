@@ -55,7 +55,14 @@ process.stdin.on("end", () => {
   const cfg = lib.readJSON(lib.cfgPath(sessionId));
   if (!cfg) return;
   const now = Math.floor(Date.now() / 1000);
-  const st = lib.readJSON(lib.statePath(sessionId)) || {};
+  let st = lib.readJSON(lib.statePath(sessionId)) || {};
+  // Headless fallback (claude -p, CI, background jobs): no statusline runs there, so
+  // nothing writes the state snapshot. When it's missing/stale, sum the transcripts
+  // right here so token budgets (and burn-rate translation) still enforce. Tokens only -
+  // $ and plan % genuinely need the interactive sensor feed.
+  if ((!st.ts || now - st.ts > 120) && d.transcript_path) {
+    st = { ...st, tokens: Math.max(st.tokens || 0, lib.sumTranscriptTokens(d.transcript_path)) };
+  }
 
   // Close an active turn's past-deadline overshoot when the turn ends.
   if (event === "Stop" || event === "SubagentStop") {
