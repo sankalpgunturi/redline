@@ -94,12 +94,13 @@ Plan `%` budgets are anchored to your plan's **current state**: `/redline 80%` w
 | Command | What |
 |---|---|
 | `redline pulse` | all your active budgets, live, plus the landed-rate (local, no network) |
+| `redline doctor` | check the wiring: hooks, statusline sensor, plan feed |
 | `redline uninstall` | remove redline from Claude Code |
 | `redline version` | |
 
 ## Pulse
 
-Every active budget across your sessions, live, plus the one number that matters: did the session land within budget? All local, no network.
+Every active budget across your sessions, live, plus the one number that matters: did the session land within budget? All local, no network. When you run several sessions at once, pulse also estimates each session's share of the shared plan window (`~3.1% of plan`), so you can see which one is eating it.
 
 ```bash
 redline pulse

@@ -138,8 +138,20 @@ if (cfg.plan_pct != null) {
   }
 }
 
+// Forecast from the user's own history: what does this budget buy at their typical burn?
+let forecast = "";
+const tb = lib.typicalBurn();
+if (tb) {
+  const mins = [];
+  if (cfg.duration_sec) mins.push(cfg.duration_sec / 60);
+  if (cfg.tokens && tb.tokMin) mins.push(cfg.tokens / tb.tokMin);
+  if (cfg.dollars && tb.usdMin) mins.push(cfg.dollars / tb.usdMin);
+  const rates = [tb.tokMin ? `~${lib.fmtTokens(tb.tokMin)} tok/min` : null, tb.usdMin ? `~$${tb.usdMin.toFixed(2)}/min` : null].filter(Boolean);
+  if (mins.length && rates.length) forecast = `\nAt your typical burn (${rates.join(" · ")}, median of ${tb.n} sessions) this budget ≈ ${Math.round(Math.min(...mins))} min of work.`;
+}
+
 console.log(
-`✅ redline budget set for this session: ${parts.join(" + ")}.${planEcho}
+`✅ redline budget set for this session: ${parts.join(" + ")}.${planEcho}${forecast}
 
 You'll see a budget signal every turn - \`<total_tokens>N tokens left</total_tokens>\` (the
 same signal you natively pace against) plus a \`<redline>\` line with time/$/tier. Treat this

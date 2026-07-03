@@ -14,6 +14,11 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 - Observed tokens-per-1%-of-plan in `redline pulse` and the set-time echo (`1% ≈ 85k tok`) - the number the usage page doesn't tell you.
 - `redline pulse` gained a PLAN WINDOW section: each window's level, reset countdown, and token cost per 1%.
 
+- Headless enforcement: token budgets now work in `claude -p`, CI, and background jobs - when no statusline sensor is running, the hook sums transcripts itself.
+- Per-session plan attribution in `redline pulse`: estimates each live session's share of the shared plan window (`~3.1% of plan`) from its token count and the observed tokens-per-1%.
+- `redline doctor`: checks hooks, the statusline sensor (the classic silent failure: a kept third-party statusline means $/plan budgets have no feed), the /redline command, and the plan-window reading.
+- Set-time forecast: with 3+ finished sessions in history, `/redline` echoes what the budget buys at your median burn ("this budget ≈ 25 min of work").
+
 ### Fixed
 - `used_percentage` readings outside 0-100 (claude-code#52326 sends an epoch timestamp when the window is empty) are discarded instead of poisoning the baseline.
 
