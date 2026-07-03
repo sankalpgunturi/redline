@@ -39,7 +39,9 @@ Result: lands ~90–95%, under budget, with a complete deliverable.
 | time | hook computes from `set_at` | best-effort (see limits) |
 | `$` | `cost.total_cost_usd` | precise |
 | tokens | sum of transcript usage | precise |
-| plan `%` | `rate_limits` delta from baseline | precise |
+| plan `%` | `rate_limits.used_percentage` | precise |
+
+Plan `%` has two semantics. `/redline 80%` is an **absolute ceiling**: the fraction is `used_percentage / 80`, anchored to the window's current state - a half-burned plan shows half-burned from the first render, and a mid-session window reset frees budget back up. `/redline +10%` is a **relative allowance**: `(used_percentage - baseline) / 10`, measured from a baseline captured at set time (the original semantic).
 
 Whichever dimension is closest to its limit is the **binding constraint** - the single bar tracks it, tagged with its gauge.
 
@@ -91,6 +93,10 @@ Mechanics: `UserPromptSubmit` stamps `turn_start`; `Stop` closes the turn, addin
 | **time** | wall-clock + active overshoot (above) | the only dimension affected by idle |
 | **$** | Claude Code's `cost.total_cost_usd` (statusline feed) | client-side **estimate**, session-wide (incl. subagents), only moves during turns. Not a bill - on Max it's API-equivalent. |
 | **tokens** | summed from transcripts (main + subagents) | redline's own count; independent of the `$` source |
-| **plan %** | `rate_limits.*.used_percentage` delta from baseline | five_hour or seven_day window |
+| **plan %** | `rate_limits.*.used_percentage` (absolute ceiling by default; `+N%` = delta from baseline) | five_hour or seven_day window; readings outside 0-100 are discarded (claude-code#52326 sends an epoch there when the window is empty) |
+
+## The plan-window sensor (`plan.json`)
+
+Every statusline render - budget or not - writes the latest `rate_limits` reading to `~/.claude/redline/plan.json`: `used_percentage` and `resets_at` per window, plus **observed tokens-per-1%** whenever an active plan budget has both a token delta and a window delta to divide. That one file powers three things Anthropic's usage page doesn't offer: `/redline 80%` echoes where your window sits (and warns if you're already past the ceiling), the no-budget statusline still shows `plan 52% ↺1:23`, and `redline pulse` reports what 1% of *your* plan costs in tokens. The ratio is an estimate - concurrent sessions share the window, and cache reads are weighted differently - so it's labelled `≈`.
 
 Money needs no idle handling: cost only accrues when a prompt is sent, so it never inflates between prompts.

@@ -36,7 +36,10 @@ function ledger(cfg, st, now) {
   }
   if (cfg.dollars != null) dims.push(`$${Math.max(0, cfg.dollars - r.costUsd).toFixed(2)} left`);
   if (cfg.tokens != null) dims.push(`${lib.fmtTokens(Math.max(0, cfg.tokens - r.tokens))} tok left`);
-  if (cfg.plan_pct != null && r.planNow != null && r.baselinePlan != null) dims.push(`${Math.max(0, cfg.plan_pct - (r.planNow - r.baselinePlan)).toFixed(1)}% plan left`);
+  if (cfg.plan_pct != null) {
+    const left = lib.planLeft(cfg, r.planNow, r.baselinePlan);
+    if (left != null) dims.push(`${Math.max(0, left).toFixed(1)}% plan left` + (cfg.plan_rel ? "" : ` (window at ${r.planNow.toFixed(1)}%, cap ${cfg.plan_pct}%)`));
+  }
   const t = tier(overall), sig = lib.tokensLeft(cfg, st, now);
   const tag = sig != null ? `<total_tokens>${sig} tokens left</total_tokens>\n` : "";
   return { overall, pct, text: `${tag}<redline> ${pct}% used · tier ${t.tag} · ${dims.join(" · ")}\n  ${t.line}\n</redline>` };

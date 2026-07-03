@@ -78,6 +78,42 @@ hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"Stop\"}" >/dev/null
 grep -q '"turn_start": null' "$D/$SID.state.json" || fail "Stop did not clear turn_start"
 node -e 'const o=JSON.parse(require("fs").readFileSync(process.argv[1]));process.exit(o.overshoot_sec>=25&&o.overshoot_sec<=35?0:1)' "$D/$SID.state.json" || fail "Stop overshoot accounting wrong"
 
+# 10d. PLAN %: bare N% = absolute ceiling (anchored to the window's current state)
+node "$BIN/set.js" "80%" "$SID" >/dev/null
+grep -q '"plan_pct": 80' "$D/$SID.json" || fail "80% not parsed as plan budget"
+grep -q '"plan_rel"' "$D/$SID.json" && fail "bare N% must be absolute (no plan_rel)" || true
+FABS=$(node -e 'const l=require("'"$BIN"'/lib.js");console.log(l.fractions({plan_pct:80},0,{planNow:60,baselinePlan:60}).f.plan)')
+[ "$FABS" = "0.75" ] || fail "ceiling: window 60% of cap 80% should be 0.75 (got $FABS)"
+
+# 10e. PLAN %: +N% = relative allowance from the set-time baseline
+node "$BIN/set.js" "+10%" "$SID" >/dev/null
+grep -q '"plan_rel": true' "$D/$SID.json" || fail "+10% not parsed as relative allowance"
+FREL=$(node -e 'const l=require("'"$BIN"'/lib.js");console.log(l.fractions({plan_pct:10,plan_rel:true},0,{planNow:60,baselinePlan:55}).f.plan)')
+[ "$FREL" = "0.5" ] || fail "allowance: 5 of 10 points spent should be 0.5 (got $FREL)"
+# window slid below baseline: fraction clamps at 0, never negative
+FNEG=$(node -e 'const l=require("'"$BIN"'/lib.js");console.log(l.fractions({plan_pct:10,plan_rel:true},0,{planNow:50,baselinePlan:55}).f.plan)')
+[ "$FNEG" = "0" ] || fail "plan fraction went negative (got $FNEG)"
+
+# 10f. SENSOR: epoch-in-used_percentage (claude-code#52326) is discarded; sane readings land in plan.json
+setcfg "{\"session_id\":\"$SID\",\"set_at\":$(now),\"plan_pct\":80,\"plan_window\":\"five_hour\"}"
+echo "{\"session_id\":\"$SID\",\"rate_limits\":{\"five_hour\":{\"used_percentage\":1750000000}}}" | node "$BIN/statusline.js" >/dev/null
+grep -q '"plan_now": null' "$D/$SID.state.json" || fail "epoch used_percentage not discarded"
+echo "{\"session_id\":\"$SID\",\"rate_limits\":{\"five_hour\":{\"used_percentage\":52.4,\"resets_at\":$(( $(now) + 3600 ))}}}" | node "$BIN/statusline.js" | grep -q "27.6% left" || fail "statusline missing plan budget countdown"
+grep -q '"pct": 52.4' "$D/plan.json" || fail "plan.json snapshot not written"
+# +N% budget: the plan window level overlays the bar as a ▒ tail beyond the budget fill
+setcfg "{\"session_id\":\"$SID\",\"set_at\":$(now),\"plan_pct\":50,\"plan_rel\":true,\"plan_window\":\"five_hour\"}"
+echo "{\"session_id\":\"$SID\",\"rate_limits\":{\"five_hour\":{\"used_percentage\":52.4}}}" | node "$BIN/statusline.js" | grep -q "▒" || fail "no plan overlay in bar"
+# ...and stays visible as a ▒ notch when the burn fill overtakes the plan level
+setcfg "{\"session_id\":\"$SID\",\"set_at\":$(now),\"plan_pct\":50,\"plan_rel\":true,\"plan_window\":\"five_hour\"}"
+setstate "{\"baseline_plan\":0,\"baseline_tokens\":0}"
+OUT=$(echo "{\"session_id\":\"$SID\",\"rate_limits\":{\"five_hour\":{\"used_percentage\":30}}}" | node "$BIN/statusline.js")
+echo "$OUT" | grep -q "▒" || fail "plan notch swallowed by burn fill: $OUT"
+echo "$OUT" | grep -q "60%" || fail "burn should be 60% (30 of +50): $OUT"
+
+# 10g. SENSOR: no-budget statusline still reports the plan window
+rm -f "$D/$SID.json" "$D/$SID.state.json"
+echo "{\"session_id\":\"$SID\",\"rate_limits\":{\"five_hour\":{\"used_percentage\":52.4}}}" | node "$BIN/statusline.js" | grep -q "plan 52%" || fail "no-budget statusline missing plan level"
+
 # 11. ANALYTICS: SessionEnd retires a LANDED budget to history
 rm -f "$D/history.jsonl"
 setcfg "{\"session_id\":\"$SID\",\"set_at\":$(( $(now) - 150 )),\"duration_sec\":300}"  # 50% -> landed

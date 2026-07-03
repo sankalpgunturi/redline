@@ -2,6 +2,21 @@
 
 All notable changes are documented here. Format: [Keep a Changelog](https://keepachangelog.com).
 
+## [Unreleased]
+
+### Changed
+- **BREAKING: plan `%` budgets are now absolute ceilings.** `/redline 80%` means "stop when the window hits 80% used" - anchored to your plan's current state, so a half-burned window shows up half-burned instead of a bar that starts at 0%. The old relative semantic ("N more points from now") moved to `/redline +N%`.
+
+### Added
+- Plan-window sensor: every statusline render persists the latest `rate_limits` reading (`used_percentage`, `resets_at`) to `~/.claude/redline/plan.json`.
+- `/redline 80%` echoes where your window sits right now, your headroom to the ceiling, and warns if you're already past it.
+- The statusline bar now overlays the plan window into the budget track: solid fill = this session's budget burn, dim `▒` tail = where the shared plan window sits, one bar instead of two competing percentages. With no budget set, the bar shows the plan level growing (`▒░░… plan 7% ↺4:35`). Reset countdown (`↺`) rides on the plan segment.
+- Observed tokens-per-1%-of-plan in `redline pulse` and the set-time echo (`1% ≈ 85k tok`) - the number the usage page doesn't tell you.
+- `redline pulse` gained a PLAN WINDOW section: each window's level, reset countdown, and token cost per 1%.
+
+### Fixed
+- `used_percentage` readings outside 0-100 (claude-code#52326 sends an epoch timestamp when the window is empty) are discarded instead of poisoning the baseline.
+
 ## [0.1.1] - 2026-06-23
 
 ### Changed

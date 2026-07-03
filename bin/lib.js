@@ -10,6 +10,7 @@ const cfgPath = (id) => path.join(DIR, `${id}.json`);
 const statePath = (id) => path.join(DIR, `${id}.state.json`);
 const pendingPath = () => path.join(DIR, "pending.json");
 const historyPath = () => path.join(DIR, "history.jsonl");
+const planPath = () => path.join(DIR, "plan.json"); // global plan-window snapshot (latest sensor reading, any session)
 
 function readJSON(p) { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; } }
 function writeJSON(p, obj) { ensureDir(); fs.writeFileSync(p, JSON.stringify(obj, null, 2)); }
@@ -49,12 +50,24 @@ function timeUsedSec(cfg, now, turnStart, overshootSec) {
   return cfg.duration_sec + over;
 }
 
+// Plan % budgets have two semantics:
+// - ceiling (default): "stop when the window hits N% used" - anchored to the plan's
+//   CURRENT state, so a half-burned window shows up half-burned from the first render.
+// - allowance (plan_rel, set with +N%): "spend N more points from the set-time baseline".
+// Returns budget-% remaining under either semantic, or null until the sensor has data.
+function planLeft(cfg, planNow, baselinePlan) {
+  if (cfg.plan_pct == null || planNow == null) return null;
+  if (cfg.plan_rel) return baselinePlan == null ? null : cfg.plan_pct - (planNow - baselinePlan);
+  return cfg.plan_pct - planNow;
+}
+
 function fractions(cfg, now, r = {}) {
   const f = {};
   if (cfg.duration_sec) f.time = timeUsedSec(cfg, now, r.turnStart, r.overshootSec) / cfg.duration_sec;
   if (cfg.dollars) f.cost = (r.costUsd || 0) / cfg.dollars;
   if (cfg.tokens) f.tokens = (r.tokens || 0) / cfg.tokens;
-  if (cfg.plan_pct != null && r.planNow != null && r.baselinePlan != null) f.plan = (r.planNow - r.baselinePlan) / cfg.plan_pct;
+  const pl = planLeft(cfg, r.planNow, r.baselinePlan);
+  if (pl != null) f.plan = Math.max(0, (cfg.plan_pct - pl) / cfg.plan_pct); // never negative when the window slides back down
   const vals = Object.values(f).filter((v) => Number.isFinite(v));
   return { f, overall: vals.length ? Math.max(...vals) : 0 };
 }
@@ -77,7 +90,9 @@ function tokensLeft(cfg, st, now) {
   }
   if (cfg.plan_pct != null && st.plan_now != null && st.baseline_plan != null) {
     const planUsed = st.plan_now - st.baseline_plan;
-    if (planUsed > 0 && used > 0) cands.push((cfg.plan_pct - planUsed) * (used / planUsed));
+    const usedSince = used - (st.baseline_tokens || 0); // same span as planUsed, so the tok/% ratio is honest
+    const left = planLeft(cfg, st.plan_now, st.baseline_plan);
+    if (planUsed > 0 && usedSince > 0 && left != null) cands.push(left * (usedSince / planUsed));
   }
   const valid = cands.filter((x) => Number.isFinite(x));
   return valid.length ? Math.max(0, Math.round(Math.min(...valid))) : null;
@@ -93,7 +108,7 @@ function retire(cfg, st, now, reason) {
   if (peak <= 0.001 && elapsed < 10) return null;
   const rec = {
     ts: now, session: cfg.session_id || null, reason,
-    budget: { duration_sec: cfg.duration_sec || null, dollars: cfg.dollars || null, tokens: cfg.tokens || null, plan_pct: cfg.plan_pct ?? null },
+    budget: { duration_sec: cfg.duration_sec || null, dollars: cfg.dollars || null, tokens: cfg.tokens || null, plan_pct: cfg.plan_pct ?? null, plan_rel: cfg.plan_rel ? true : undefined },
     peak: round2(peak),
     final: { overall: round2(overall), cost_usd: round2(r.costUsd), tokens: r.tokens, elapsed_sec: elapsed },
     landed: peak <= 1.0, overshoot_pct: Math.max(0, Math.round((peak - 1) * 100)),
@@ -115,6 +130,6 @@ function fmtTokens(n) {
 }
 
 module.exports = {
-  DIR, ensureDir, cfgPath, statePath, pendingPath, historyPath, readJSON, writeJSON, appendHistory,
-  sumTranscriptTokens, timeUsedSec, fractions, burnRate, tokensLeft, retire, round2, fmtDuration, fmtTokens,
+  DIR, ensureDir, cfgPath, statePath, pendingPath, historyPath, planPath, readJSON, writeJSON, appendHistory,
+  sumTranscriptTokens, timeUsedSec, planLeft, fractions, burnRate, tokensLeft, retire, round2, fmtDuration, fmtTokens,
 };

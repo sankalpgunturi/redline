@@ -57,7 +57,7 @@ for (const ev of ["PreToolUse", "UserPromptSubmit", "PostToolUse", "SubagentStar
 fs.writeFileSync(SETTINGS, JSON.stringify(settings, null, 2));
 
 const cmdMd = `---
-description: "Set/clear this session's time + token/$ budget. e.g. /redline 10m $5 | 30m 200k | 45m 10% | off"
+description: "Set/clear this session's time + token/$/plan budget. e.g. /redline 10m $5 | 30m 200k | 80% | +10% | off"
 ---
 !\`"${RL}" set '$ARGUMENTS' "\${CLAUDE_SESSION_ID}"\`
 `;
