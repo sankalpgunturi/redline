@@ -2,6 +2,16 @@
 
 All notable changes are documented here. Format: [Keep a Changelog](https://keepachangelog.com).
 
+## [0.4.0] - 2026-07-13
+
+### Added
+- npm distribution: `npm install -g redline-cc` (first npm release; the installed command stays `redline`). Publish wired into the release workflow with provenance. Contributed by @Harshithnelagiri (#9).
+- Budget parser hardening: decimal time units (`2.5h`), and whole-spec rejection of negative/zero/garbage budgets with a clear error - no partial applies. Plus a dedicated 50-case parser suite in CI. Contributed by @Harshithnelagiri (#9).
+- Windows-safe dispatcher resolution in the installer (PATH scan instead of a bash shell-out) (#9).
+
+### Changed
+- CI actions bumped: checkout v7, setup-node v6 (#1, #2).
+
 ## [0.3.1] - 2026-07-13
 
 ### Changed
