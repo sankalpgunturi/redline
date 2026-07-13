@@ -18,3 +18,13 @@ jobs:
           else
             gh release create "${GITHUB_REF_NAME}" --generate-notes --title "redline ${GITHUB_REF_NAME}"
           fi
+      - name: Bump Homebrew tap
+        env: { TAP_TOKEN: "${{ secrets.TAP_GITHUB_TOKEN }}" }
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then echo "No TAP_GITHUB_TOKEN secret - skipping tap bump (do it manually)."; exit 0; fi
+          SHA=$(curl -sL "https://github.com/${GITHUB_REPOSITORY}/archive/refs/tags/${GITHUB_REF_NAME}.tar.gz" | shasum -a 256 | cut -d' ' -f1)
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/sankalpgunturi/homebrew-redline" tap
+          cd tap
+          sed -i -E "s|/v[0-9.]+\.tar\.gz|/${GITHUB_REF_NAME}.tar.gz|; s|sha256 \"[a-f0-9]+\"|sha256 \"${SHA}\"|" Formula/redline.rb
+          git config user.name "github-actions" && git config user.email "actions@users.noreply.github.com"
+          git commit -am "redline ${GITHUB_REF_NAME#v}" && git push

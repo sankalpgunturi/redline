@@ -95,6 +95,17 @@ Mechanics: `UserPromptSubmit` stamps `turn_start`; `Stop` closes the turn, addin
 | **tokens** | summed from transcripts (main + subagents) | redline's own count; independent of the `$` source |
 | **plan %** | `rate_limits.*.used_percentage` (absolute ceiling by default; `+N%` = delta from baseline) | five_hour or seven_day window; readings outside 0-100 are discarded (claude-code#52326 sends an epoch there when the window is empty) |
 
+## Fleet budget (`global.json`)
+
+`redline global 60%` writes one machine-wide ceiling on the shared plan window. Every session's hook reads it next to the session's own budget; the binding constraint is whichever fraction is higher, so a budget-less session still paces and locks against the fleet cap. Tiering, reserve locking, and prompt blocking all reuse the same reserve-landing model - the whole fleet lands softly, no session is killed. Two safeguards: the fraction needs a plan.json reading fresher than 15 minutes (a stale sensor must never lock anyone out), and session history stays session-scoped (`peak` excludes fleet pressure - the fleet running hot is not the session's overshoot).
+
+## Landing telemetry
+
+Two additions make "lands with the task done" measurable instead of assumed:
+
+- **Clean landings.** Every reserve-zone tool denial increments `denials` in session state. `clean = landed && denials == 0`: the model wrapped up voluntarily before the lock fired. Pulse reports the rate; the pacing prompts are tuned against it.
+- **Landing manifest.** From the LOW tier on, the ledger asks the model to end its final message with `LANDING: delivered <what>; cut <what>`. Hooks can't see responses, but `Stop` gets the transcript path, so it greps the last manifest line into state, and `retire` writes it to history. Pulse shows the most recent one - what the budget cost in scope, in the model's own words.
+
 ## The plan-window sensor (`plan.json`)
 
 Every statusline render - budget or not - writes the latest `rate_limits` reading to `~/.claude/redline/plan.json`: `used_percentage` and `resets_at` per window, plus **observed tokens-per-1%** whenever an active plan budget has both a token delta and a window delta to divide. That one file powers three things Anthropic's usage page doesn't offer: `/redline 80%` echoes where your window sits (and warns if you're already past the ceiling), the no-budget statusline still shows `plan 52% ↺1:23`, and `redline pulse` reports what 1% of *your* plan costs in tokens. The ratio is an estimate - concurrent sessions share the window, and cache reads are weighted differently - so it's labelled `≈`.

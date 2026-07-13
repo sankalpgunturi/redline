@@ -62,15 +62,19 @@ function render() {
   // where each window sits, when it resets, and what 1% costs in tokens (observed).
   const snap = lib.readJSON(lib.planPath());
   const snapFresh = snap && snap.ts && now - snap.ts < 24 * 3600 ? snap : null;
+  const g = lib.readJSON(lib.globalPath());
   if (snapFresh) {
     L.push("  " + C.dim + "PLAN WINDOW" + C.reset);
     for (const [w, label] of [["five_hour", "5-hour"], ["seven_day", "7-day "]]) {
       const p = snap[w]; if (!p) continue;
-      const c = col(p.pct / 100);
+      const capped = g && g.plan_pct != null && (g.plan_window || "five_hour") === w;
+      const frac = capped ? p.pct / g.plan_pct : p.pct / 100;
+      const c = col(frac);
       const bits = [c + p.pct.toFixed(1) + "% used" + C.reset];
+      if (capped) bits.push("🌐 fleet cap " + g.plan_pct + "% (" + Math.round(frac * 100) + "% of it)");
       if (p.resets_at) bits.push("resets in " + lib.fmtDuration(p.resets_at - now));
       if (p.tok_per_pct) bits.push("1% ≈ " + lib.fmtTokens(p.tok_per_pct) + " tok");
-      L.push("    📊 " + label + " " + c + bar(p.pct / 100) + C.reset + "  " + bits.join(C.dim + " · " + C.reset));
+      L.push("    📊 " + label + " " + c + bar(frac) + C.reset + "  " + bits.join(C.dim + " · " + C.reset));
     }
     L.push("");
   }
@@ -96,6 +100,13 @@ function render() {
     const over = h.length - landed;
     L.push("    " + C.green + C.bold + "🎯 " + landed + (landed === 1 ? " time" : " times") + C.reset + "  " + C.dim + "you set a time or money budget and finished inside it" + C.reset);
     L.push("    " + c + bar(rate / 100) + C.reset + "  " + C.dim + rate + "% of " + h.length + " sessions" + (over ? " · " + over + " ran over" : "") + C.reset);
+    const tracked = h.filter((r) => r.denials != null);
+    if (tracked.length) {
+      const clean = tracked.filter((r) => r.clean).length;
+      L.push("    " + C.dim + "🛬 clean landings (wrapped up before the lock fired): " + clean + "/" + tracked.length + C.reset);
+    }
+    const manifest = [...h].reverse().find((r) => r.landing);
+    if (manifest) L.push("    " + C.dim + "last landing: \"" + manifest.landing + "\"" + C.reset);
   }
   L.push("");
   if (!once) L.push("  " + C.dim + "refreshing · ctrl-c to exit" + C.reset);

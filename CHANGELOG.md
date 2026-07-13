@@ -2,6 +2,17 @@
 
 All notable changes are documented here. Format: [Keep a Changelog](https://keepachangelog.com).
 
+## [Unreleased]
+
+### Added
+- **Fleet budget**: `redline global 60%` (or `/redline global 60%`) sets a machine-wide ceiling on the shared plan window. Every session - budgeted or not - paces and lands softly against it; statusline shows a `🌐` bar, pulse shows the cap. Stale sensor readings (>15 min) never enforce.
+- **Landing telemetry**: reserve-zone denials are counted (`clean` landing = the model wrapped up before the lock fired), and the model ends budget-pressed sessions with a `LANDING: delivered X; cut Y` manifest that the Stop hook harvests into history. Pulse shows the clean-landing rate and the last manifest.
+- **Notifications** (opt-in, macOS): `redline notify on` pings when any session crosses the 70% landing zone or the 90% reserve.
+- Release workflow now bumps the Homebrew tap automatically (requires a `TAP_GITHUB_TOKEN` repo secret; skips gracefully without it).
+
+### Changed
+- Tokens-per-1%-of-plan is now computed from non-cache tokens (input + output + cache creation). Cache reads barely count against the limiter and were inflating the ratio to absurdity (1% ≈ 11M).
+
 ## [0.2.0] - 2026-07-02
 
 ### Changed
