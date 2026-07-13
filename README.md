@@ -89,11 +89,23 @@ Whichever dimension is closest to its limit drives the bar (tagged with its gaug
 
 Plan `%` budgets are anchored to your plan's **current state**: `/redline 80%` when the window is already 52% used starts the bar at 52/80, shows the absolute window level plus its reset countdown (`plan 52% ↺1:23`), and tells you your headroom when you set it. Even with no budget set, the statusline shows where your window sits. As a bonus, redline observes what 1% of *your* plan actually costs in tokens (`1% ≈ 85k tok` in `redline pulse`) - the number the usage page doesn't tell you.
 
+## Fleet
+
+Run ten sessions at once? The shared plan window is the resource that actually runs out. Give the machine one ceiling:
+
+```
+redline global 60%
+```
+
+Every session on the machine - budgeted or not - watches the shared window and starts its landing sequence as it approaches 60% used. Each session lands softly with what it has; nothing is killed. `redline pulse` shows the cap, the window, and each session's estimated share of it. Optional landing-zone pings: `redline notify on` (a desktop notification when any session crosses 70% or 90%).
+
 ## Commands
 
 | Command | What |
 |---|---|
 | `redline pulse` | all your active budgets, live, plus the landed-rate (local, no network) |
+| `redline global 60%` | fleet budget: machine-wide ceiling on the shared plan window |
+| `redline notify on` | desktop ping when a session enters the landing zone (`off` to disable) |
 | `redline doctor` | check the wiring: hooks, statusline sensor, plan feed |
 | `redline uninstall` | remove redline from Claude Code |
 | `redline version` | |
@@ -101,6 +113,8 @@ Plan `%` budgets are anchored to your plan's **current state**: `/redline 80%` w
 ## Pulse
 
 Every active budget across your sessions, live, plus the one number that matters: did the session land within budget? All local, no network. When you run several sessions at once, pulse also estimates each session's share of the shared plan window (`~3.1% of plan`), so you can see which one is eating it.
+
+Landings are graded, not just counted: a **clean landing** means the model wrapped up on its own before the 90% lock ever fired, and each landing records the model's own manifest (`LANDING: delivered X; cut Y`), so you can see what a budget actually cost you in scope.
 
 ```bash
 redline pulse

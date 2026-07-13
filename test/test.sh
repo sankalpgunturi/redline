@@ -54,8 +54,12 @@ hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"PreToolUse\",\"tool_name\":
 PROJ="$HOME/proj"; mkdir -p "$PROJ/sX/subagents"; MAIN="$PROJ/sX.jsonl"
 printf '%s\n' '{"type":"assistant","message":{"usage":{"input_tokens":100,"output_tokens":50}}}' > "$MAIN"
 printf '%s\n' '{"type":"assistant","message":{"usage":{"input_tokens":1000,"output_tokens":500}}}' > "$PROJ/sX/subagents/agent-a.jsonl"
-TOK=$(node -e 'process.stdout.write(String(require("'"$BIN"'/lib.js").sumTranscriptTokens(process.argv[1])))' "$MAIN")
+TOK=$(node -e 'process.stdout.write(String(require("'"$BIN"'/lib.js").sumTranscriptTokens(process.argv[1]).total))' "$MAIN")
 [ "$TOK" = "1650" ] || fail "token sum should include subagents (got $TOK)"
+# total counts cache reads; nc (what plan-% ratios use) does not
+printf '%s\n' '{"type":"assistant","message":{"usage":{"input_tokens":100,"output_tokens":50,"cache_read_input_tokens":1000}}}' > "$PROJ/nc.jsonl"
+NC=$(node -e 'const s=require("'"$BIN"'/lib.js").sumTranscriptTokens(process.argv[1]);process.stdout.write(s.total+" "+s.nc)' "$PROJ/nc.jsonl")
+[ "$NC" = "1150 150" ] || fail "nc split wrong (got $NC)"
 
 # 10b. REGRESSION: a TIME-ONLY budget must still sum tokens (burn-rate translation).
 PROJ2="$HOME/proj2"; mkdir -p "$PROJ2"
@@ -155,5 +159,39 @@ rm -f "$D/history.jsonl"
 for i in 1 2 3; do echo "{\"final\":{\"tokens\":60000,\"cost_usd\":1.2,\"elapsed_sec\":600}}" >> "$D/history.jsonl"; done
 node "$BIN/set.js" "10m" "$SID" | grep -q "typical burn" || fail "no forecast with 3 sessions of history"
 node "$BIN/set.js" "600k" "$SID" | grep -q "≈ 100 min" || fail "token budget forecast wrong (600k at 6k tok/min should be ~100 min)"
+
+# 18. FLEET: a global ceiling paces sessions that have NO session budget
+node "$BIN/global.js" "50%" >/dev/null
+rm -f "$D/$SID.json" "$D/$SID.state.json"
+echo "{\"five_hour\":{\"pct\":60,\"tok_per_pct\":1000},\"ts\":$(now)}" > "$D/plan.json"  # window past the cap
+hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Bash\"}" | grep -q '"continue":false' || fail "fleet cap not enforced on budget-less session"
+echo "{\"five_hour\":{\"pct\":30,\"tok_per_pct\":1000},\"ts\":$(now)}" > "$D/plan.json"  # 60% of the cap
+hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"UserPromptSubmit\",\"prompt\":\"hi\"}" | grep -q "fleet" || fail "fleet missing from ledger"
+echo "{\"session_id\":\"$SID\",\"rate_limits\":{\"five_hour\":{\"used_percentage\":30}}}" | node "$BIN/statusline.js" | grep -q "fleet left" || fail "no fleet statusline for budget-less session"
+# stale sensor must NOT lock anyone out
+echo "{\"five_hour\":{\"pct\":60},\"ts\":$(( $(now) - 3600 ))}" > "$D/plan.json"
+OUT=$(hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Bash\"}")
+[ -z "$OUT" ] || fail "stale plan reading must not enforce the fleet cap: $OUT"
+node "$BIN/global.js" off >/dev/null
+
+# 19. LANDING TELEMETRY: Stop harvests the manifest; retire records denials + clean
+PROJ3="$HOME/proj3"; mkdir -p "$PROJ3"
+printf '%s\n' '{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"done. LANDING: delivered the fix; cut the docs"}],"usage":{"input_tokens":10,"output_tokens":5}}}' > "$PROJ3/m.jsonl"
+setcfg "{\"session_id\":\"$SID\",\"set_at\":$(( $(now) - 150 )),\"duration_sec\":300}"
+setstate "{\"turn_start\":$(( $(now) - 10 )),\"overshoot_sec\":0,\"denials\":2,\"peak\":0.95,\"tokens\":100}"
+hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"Stop\",\"transcript_path\":\"$PROJ3/m.jsonl\"}" >/dev/null
+grep -q '"landing": "delivered the fix; cut the docs"' "$D/$SID.state.json" || fail "manifest not captured on Stop"
+rm -f "$D/history.jsonl"
+hook "{\"session_id\":\"$SID\",\"hook_event_name\":\"SessionEnd\"}" >/dev/null
+grep -q '"landing":"delivered the fix; cut the docs"' "$D/history.jsonl" || fail "manifest not in history"
+grep -q '"clean":false' "$D/history.jsonl" || fail "2 denials must mean not clean"
+grep -q '"landed":true' "$D/history.jsonl" || fail "peak 0.95 should still be landed"
+node "$BIN/pulse.js" --once | grep -q "clean landings" || fail "pulse missing clean-landing rate"
+
+# 20. NOTIFY toggle
+node "$BIN/redline" notify on | grep -q "ON" || fail "notify on failed"
+[ -f "$D/notify.on" ] || fail "notify marker not written"
+node "$BIN/redline" notify off >/dev/null
+[ -f "$D/notify.on" ] && fail "notify off did not remove marker" || true
 
 echo "PASS: redline v2 self-check (ledger+tiers+native signal · enforcement · umbrella · analytics)"

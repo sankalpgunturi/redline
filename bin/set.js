@@ -39,6 +39,12 @@ if (["off", "clear", "none", "stop", "reset", "cancel"].includes(tokens[0])) {
   clear();
   process.exit(0);
 }
+if (tokens[0] === "global") {
+  // /redline global 60% - fleet budget, delegates to the global setter.
+  process.argv[2] = tokens.slice(1).join(" ");
+  require("./global.js");
+  return;
+}
 if (!argStr) {
   const cur = !pending ? lib.readJSON(lib.cfgPath(sessionId)) : null;
   if (cur) {
