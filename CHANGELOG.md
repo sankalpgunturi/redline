@@ -2,7 +2,7 @@
 
 All notable changes are documented here. Format: [Keep a Changelog](https://keepachangelog.com).
 
-## [Unreleased]
+## [0.3.0] - 2026-07-13
 
 ### Added
 - **Fleet budget**: `redline global 60%` (or `/redline global 60%`) sets a machine-wide ceiling on the shared plan window. Every session - budgeted or not - paces and lands softly against it; statusline shows a `🌐` bar, pulse shows the cap. Stale sensor readings (>15 min) never enforce.
