@@ -2,6 +2,12 @@
 
 All notable changes are documented here. Format: [Keep a Changelog](https://keepachangelog.com).
 
+## [0.3.1] - 2026-07-13
+
+### Changed
+- Website tells the v0.3 story: plan-aware ceilings, fleet budget, graded landings, tokens-per-1%.
+- Release workflow: tap bump is idempotent and automated via TAP_GITHUB_TOKEN.
+
 ## [0.3.0] - 2026-07-13
 
 ### Added
