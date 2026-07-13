@@ -5,11 +5,18 @@ permissions: { contents: write }
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions: { contents: write, id-token: write }
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
-        with: { node-version: "20" }
+        with: { node-version: "20", registry-url: "https://registry.npmjs.org" }
       - run: bash test/test.sh
+      - run: bash test/parser-cases.sh
+      - name: Publish to npm
+        env: { NODE_AUTH_TOKEN: "${{ secrets.NPM_TOKEN }}" }
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then echo "No NPM_TOKEN secret - skipping npm publish."; exit 0; fi
+          npm publish --provenance --access public
       - name: Create release if missing
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |

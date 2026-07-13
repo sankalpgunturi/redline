@@ -14,6 +14,26 @@ hook() { echo "$1" | node "$BIN/hook.js"; }
 # 1. parse
 node "$BIN/set.js" "5m \$1" "$SID" >/dev/null; [ -f "$D/$SID.json" ] || fail "config not written"
 
+# 1b. parser: decimal + combined time units
+node "$BIN/set.js" "2.5h" "$SID" >/dev/null; grep -q '"duration_sec": 9000' "$D/$SID.json" || fail "2.5h did not parse to 9000s"
+node "$BIN/set.js" "1h30m" "$SID" >/dev/null; grep -q '"duration_sec": 5400' "$D/$SID.json" || fail "1h30m did not parse to 5400s"
+
+# 1c. parser: rejects negative, garbage, and zero-value budgets (exit non-zero, no partial write)
+OUT=$(node "$BIN/set.js" "-100" "$SID" 2>&1) && fail "-100 should have been rejected (exit 0)"
+echo "$OUT" | grep -q "couldn't parse" || fail "-100 rejection message missing: $OUT"
+grep -q '"duration_sec": 5400' "$D/$SID.json" || fail "-100 should not have modified existing config"
+
+OUT=$(node "$BIN/set.js" "abc" "$SID" 2>&1) && fail "abc should have been rejected (exit 0)"
+echo "$OUT" | grep -q "couldn't parse" || fail "abc rejection message missing: $OUT"
+
+OUT=$(node "$BIN/set.js" "\$0" "$SID" 2>&1) && fail "\$0 should have been rejected (exit 0)"
+echo "$OUT" | grep -q "couldn't parse" || fail "\$0 rejection message missing: $OUT"
+
+OUT=$(node "$BIN/set.js" "5m abc" "$SID" 2>&1) && fail "5m abc should have been rejected (exit 0)"
+grep -q '"duration_sec": 5400' "$D/$SID.json" || fail "partially-valid spec should not have written a new config"
+
+node "$BIN/set.js" "5m \$1" "$SID" >/dev/null # restore known state for the tests below
+
 # 2. statusline bar + state(peak)
 SL=$(echo "{\"session_id\":\"$SID\",\"cost\":{\"total_cost_usd\":0.50}}" | node "$BIN/statusline.js")
 echo "$SL" | grep -q "█" || fail "no bar"

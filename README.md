@@ -60,6 +60,11 @@ Needs the Node that ships with Claude Code. Pick one, then restart Claude Code:
 brew install sankalpgunturi/redline/redline && redline install
 ```
 
+**npm** (package is `redline-cc` - `redline` was already taken on npm; the installed command is still `redline`)
+```bash
+npm install -g redline-cc && redline install
+```
+
 **curl**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sankalpgunturi/redline/main/install.sh | bash
@@ -77,6 +82,7 @@ It backs up your settings, never clobbers an existing statusline, and is safe to
 | Command | Budget |
 |---|---|
 | `/redline 10m` | 10 minutes |
+| `/redline 2.5h` | 2.5 hours |
 | `/redline $5` | $5 |
 | `/redline 30m $5` | 30 min and $5 |
 | `/redline 1h 200k` | 1 hour and 200k tokens |
@@ -84,6 +90,8 @@ It backs up your settings, never clobbers an existing statusline, and is safe to
 | `/redline +10%` | plan allowance: spend 10 more points of the window from now |
 | `/redline 80% 7d` | ceiling on the 7-day window instead |
 | `/redline off` | clear |
+
+Invalid or zero/negative values (`/redline abc`, `/redline -100`) are rejected with an error and a usage example - no budget is set.
 
 Whichever dimension is closest to its limit drives the bar (tagged with its gauge). Each one counts down, like `⏱ 1:00 left` and `💰 $1.85 left`.
 
