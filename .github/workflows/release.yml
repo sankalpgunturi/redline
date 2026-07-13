@@ -27,4 +27,4 @@ jobs:
           cd tap
           sed -i -E "s|/v[0-9.]+\.tar\.gz|/${GITHUB_REF_NAME}.tar.gz|; s|sha256 \"[a-f0-9]+\"|sha256 \"${SHA}\"|" Formula/redline.rb
           git config user.name "github-actions" && git config user.email "actions@users.noreply.github.com"
-          git commit -am "redline ${GITHUB_REF_NAME#v}" && git push
+          if git diff --quiet; then echo "Formula already current - nothing to push."; else git commit -am "redline ${GITHUB_REF_NAME#v}" && git push; fi

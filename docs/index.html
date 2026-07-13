@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>redline · token and time budgeting for Claude Code</title>
-<meta name="description" content="Token and time budgeting for Claude Code. redline paces the session to finish inside the budget, and stops it before it runs over.">
-<meta property="og:title" content="redline · token and time budgeting for Claude Code">
-<meta property="og:description" content="Token and time budgeting for Claude Code. Hard time + token/$ budgets, built on native hooks.">
+<title>redline · budgets for Claude Code: time, tokens, $, your plan, your whole fleet</title>
+<meta name="description" content="Budgets for Claude Code that land softly. Time, tokens, $, plan-window ceilings anchored to your live usage, and one fleet budget for every session on the machine. It even tells you what 1% of your plan costs in tokens.">
+<meta property="og:title" content="redline · budgets for Claude Code: time, tokens, $, your plan, your whole fleet">
+<meta property="og:description" content="Soft budgets that land, never crash. Plan-aware ceilings, a machine-wide fleet budget, graded landings, and the tokens-per-1% number Anthropic doesn't publish.">
 <style>
   :root{--bg:#0d1117;--panel:#161b22;--line:#21262d;--fg:#e6edf3;--dim:#8b949e;--red:#ff4d4d;--green:#3fb950;--yellow:#d29922;--accent:#d97757}
   *{box-sizing:border-box} html{scroll-behavior:smooth}
@@ -48,8 +48,8 @@
 <div class="wrap">
   <header>
     <h1><span class="rl">redline</span></h1>
-    <p class="tag">Token and time budgeting for Claude Code.</p>
-    <p class="sub">Set a time or dollar limit. redline paces the session to finish inside it,<br>and stops it before it runs over.</p>
+    <p class="tag">Budgets for Claude Code that land softly.</p>
+    <p class="sub">Time, tokens, dollars, your plan window, or one ceiling for every session on the machine.<br>redline paces the agent to finish inside the limit - a safe landing, never a crash.</p>
     <div class="cta">
       <a class="btn primary" href="https://github.com/sankalpgunturi/redline">GitHub ★</a>
       <a class="btn ghost" href="#install">Install</a>
@@ -80,6 +80,10 @@
     <div class="card"><h3>🪂 Never abrupt</h3><p>It wraps up and delivers a usable result. No mid-sentence kill.</p></div>
     <div class="card"><h3>⏱ Time, not just tokens</h3><p>Wall-clock deadlines too. Anthropic's budget machinery has no concept of time.</p></div>
     <div class="card"><h3>☂ One umbrella</h3><p>Fanned subagents share the same budget. You never budget a subagent separately.</p></div>
+    <div class="card"><h3>📊 Knows your plan</h3><p><code>/redline 80%</code> stops when your 5-hour window hits 80 percent used - anchored to where the window actually is, with its reset countdown in the bar.</p></div>
+    <div class="card"><h3>🌐 Budgets the fleet</h3><p>Running ten sessions? <code>redline global 60%</code> is one machine-wide ceiling. Every session lands softly as the shared window approaches it.</p></div>
+    <div class="card"><h3>🔍 Decodes the 1%</h3><p>Anthropic shows opaque percentages. redline measures what 1 percent of <em>your</em> plan costs in tokens, from your own usage.</p></div>
+    <div class="card"><h3>🛬 Graded landings</h3><p>Clean landing = the agent wrapped up before the lock ever fired, ending with its own manifest: delivered X, cut Y. Measured, not assumed.</p></div>
   </div>
 
   <h2 id="install">Install</h2>
@@ -89,11 +93,15 @@
 <b>git</b>   git clone https://github.com/sankalpgunturi/redline && cd redline && ./install.sh</pre>
 
   <h2>Use</h2>
-  <pre>/redline 10m $5      set a budget (time + $, any combination)
-/redline $2          money only      /redline 1h 200k   time + tokens
-/redline 45m 10%     45 min + 10% of plan      /redline off   clear
+  <pre>/redline 10m $5        set a budget (time + $ + tokens, any combination)
+/redline 80%           plan ceiling: stop when the 5-hour window hits 80% used
+/redline +10%          plan allowance: 10 more points of the window from now
+/redline global 60%    fleet: one ceiling for every session on this machine
+/redline off           clear
 
-redline pulse    all active budgets + landed-rate (live)</pre>
+redline pulse      every session live: budgets, plan window, who's eating it
+redline notify on  desktop ping when a session enters the landing zone
+redline doctor     check the wiring: hooks, sensor, plan feed</pre>
 
   <footer>MIT · built on Claude Code's native hooks + statusline · zero dependencies · <a href="https://github.com/sankalpgunturi/redline">github.com/sankalpgunturi/redline</a></footer>
 </div>
