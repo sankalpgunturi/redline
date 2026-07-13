@@ -8,8 +8,9 @@
 //   /redline 10m            -> 10 minute time budget
 //   /redline 30m $5         -> 30 min AND $5
 //   /redline 1h 200k        -> 1 hour AND 200k tokens
-//   /redline 45m 10%        -> 45 min AND 10% of the 5-hour plan window
-//   /redline 10% 7d         -> 10% of the 7-day plan window
+//   /redline 80%            -> plan ceiling: stop when the 5-hour window hits 80% used
+//   /redline +10%           -> plan allowance: spend 10 more points of the window from now
+//   /redline 80% 7d         -> ceiling on the 7-day window
 //   /redline off            -> clear
 
 const fs = require("fs");
@@ -38,6 +39,12 @@ if (["off", "clear", "none", "stop", "reset", "cancel"].includes(tokens[0])) {
   clear();
   process.exit(0);
 }
+if (tokens[0] === "global") {
+  // /redline global 60% - fleet budget, delegates to the global setter.
+  process.argv[2] = tokens.slice(1).join(" ");
+  require("./global.js");
+  return;
+}
 if (!argStr) {
   const cur = !pending ? lib.readJSON(lib.cfgPath(sessionId)) : null;
   if (cur) {
@@ -45,10 +52,10 @@ if (!argStr) {
     if (cur.duration_sec) p.push(lib.fmtDuration(cur.duration_sec));
     if (cur.dollars) p.push("$" + cur.dollars.toFixed(2));
     if (cur.tokens) p.push(lib.fmtTokens(cur.tokens) + " tokens");
-    if (cur.plan_pct != null) p.push(cur.plan_pct + "% plan");
+    if (cur.plan_pct != null) p.push((cur.plan_rel ? "+" + cur.plan_pct + "% plan" : "plan ceiling " + cur.plan_pct + "%"));
     console.log("redline active for this session: " + p.join(" + ") + ".  Change with /redline <spec>, or /redline off.");
   } else {
-    console.log("redline: no budget set.\nExamples:  /redline 10m   |   /redline $5   |   /redline 30m $5   |   /redline 1h 200k   |   /redline 45m 10%   |   /redline off");
+    console.log("redline: no budget set.\nExamples:  /redline 10m   |   /redline $5   |   /redline 30m $5   |   /redline 1h 200k   |   /redline 80%   |   /redline +10%   |   /redline off");
   }
   process.exit(0);
 }
@@ -67,8 +74,12 @@ for (const t of tokens) {
     const v = parseFloat(t.slice(1));
     if (v > 0) cfg.dollars = v; else unknown.push(t);
   } else if (/%$/.test(t) || /%(7d|7day)$/i.test(t)) {
-    const m = t.match(/^(\d+(?:\.\d+)?)%/);
-    if (m && parseFloat(m[1]) > 0) { cfg.plan_pct = parseFloat(m[1]); if (/7d/i.test(t)) wantSevenDay = true; }
+    const m = t.match(/^(\+?)(\d+(?:\.\d+)?)%/);
+    if (m && parseFloat(m[2]) > 0) {
+      cfg.plan_pct = parseFloat(m[2]);
+      if (m[1] === "+") cfg.plan_rel = true; // +N% = allowance from now; bare N% = absolute ceiling
+      if (/7d/i.test(t)) wantSevenDay = true;
+    }
     else unknown.push(t);
   } else if (/^\d+(?:\.\d+)?k$/i.test(t)) {
     const v = Math.round(parseFloat(t) * 1e3);
@@ -95,7 +106,7 @@ for (const t of tokens) {
 if (unknown.length) {
   console.error(
     "redline: couldn't parse " + unknown.map((u) => JSON.stringify(u)).join(", ") + " in " + JSON.stringify(argStr) + ".\n" +
-    "Budgets must be positive. Examples:  /redline 10m   |   /redline 2.5h   |   /redline 30m $5   |   /redline 1h 200k   |   /redline 45m 10%   |   /redline off"
+    "Budgets must be positive. Examples:  /redline 10m   |   /redline 2.5h   |   /redline 30m $5   |   /redline 1h 200k   |   /redline 80%   |   /redline +10%   |   /redline off"
   );
   process.exit(1);
 }
@@ -105,7 +116,7 @@ if (cfg.plan_pct != null) cfg.plan_window = wantSevenDay ? "seven_day" : "five_h
 if (!cfg.duration_sec && !cfg.dollars && !cfg.tokens && cfg.plan_pct == null) {
   console.log(
     "redline: couldn't read a budget from " + JSON.stringify(argStr) + ".\n" +
-    "Examples:  /redline 10m   |   /redline 30m $5   |   /redline 1h 200k   |   /redline 45m 10%   |   /redline off"
+    "Examples:  /redline 10m   |   /redline 30m $5   |   /redline 1h 200k   |   /redline 80%   |   /redline +10%   |   /redline off"
   );
   process.exit(0);
 }
@@ -119,14 +130,49 @@ lib.writeJSON(pending ? lib.pendingPath() : lib.cfgPath(sessionId), cfg);
 if (!pending) { try { fs.rmSync(lib.statePath(sessionId)); } catch {} } // reset baselines
 
 // Human-readable summary of what was set.
+const winName = wantSevenDay ? "7-day" : "5-hour";
 const parts = [];
 if (cfg.duration_sec) parts.push(lib.fmtDuration(cfg.duration_sec));
 if (cfg.dollars) parts.push("$" + cfg.dollars.toFixed(2));
 if (cfg.tokens) parts.push(lib.fmtTokens(cfg.tokens) + " tokens");
-if (cfg.plan_pct != null) parts.push(cfg.plan_pct + "% of " + (wantSevenDay ? "7-day" : "5-hour") + " plan");
+if (cfg.plan_pct != null) parts.push(cfg.plan_rel
+  ? "+" + cfg.plan_pct + "% of the " + winName + " plan window (from now)"
+  : "plan ceiling " + cfg.plan_pct + "% (" + winName + " window)");
+
+// Echo the plan's current state from the last sensor reading, so "80%" is set in
+// full view of where the window already is - not from an invisible zero.
+let planEcho = "";
+if (cfg.plan_pct != null) {
+  const nowTs = Math.floor(Date.now() / 1000);
+  const snap = lib.readJSON(lib.planPath());
+  const p = snap && snap[cfg.plan_window];
+  if (p && snap.ts && nowTs - snap.ts < 2 * 3600) {
+    const reset = p.resets_at ? ", resets in " + lib.fmtDuration(p.resets_at - nowTs) : "";
+    planEcho = `\nYour ${winName} window is at ${p.pct.toFixed(1)}% right now${reset}` +
+      (p.tok_per_pct ? ` (1% ≈ ${lib.fmtTokens(p.tok_per_pct)} tokens observed)` : "") + ".";
+    if (!cfg.plan_rel) {
+      const headroom = cfg.plan_pct - p.pct;
+      planEcho += headroom <= 0
+        ? ` ⚠️ Already at/over the ${cfg.plan_pct}% ceiling - this budget locks immediately. Raise the ceiling or use /redline +N% for an allowance from now.`
+        : ` That leaves ${headroom.toFixed(1)} points of headroom to the ${cfg.plan_pct}% ceiling.`;
+    }
+  }
+}
+
+// Forecast from the user's own history: what does this budget buy at their typical burn?
+let forecast = "";
+const tb = lib.typicalBurn();
+if (tb) {
+  const mins = [];
+  if (cfg.duration_sec) mins.push(cfg.duration_sec / 60);
+  if (cfg.tokens && tb.tokMin) mins.push(cfg.tokens / tb.tokMin);
+  if (cfg.dollars && tb.usdMin) mins.push(cfg.dollars / tb.usdMin);
+  const rates = [tb.tokMin ? `~${lib.fmtTokens(tb.tokMin)} tok/min` : null, tb.usdMin ? `~$${tb.usdMin.toFixed(2)}/min` : null].filter(Boolean);
+  if (mins.length && rates.length) forecast = `\nAt your typical burn (${rates.join(" · ")}, median of ${tb.n} sessions) this budget ≈ ${Math.round(Math.min(...mins))} min of work.`;
+}
 
 console.log(
-`✅ redline budget set for this session: ${parts.join(" + ")}.
+`✅ redline budget set for this session: ${parts.join(" + ")}.${planEcho}${forecast}
 
 You'll see a budget signal every turn - \`<total_tokens>N tokens left</total_tokens>\` (the
 same signal you natively pace against) plus a \`<redline>\` line with time/$/tier. Treat this

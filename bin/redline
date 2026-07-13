@@ -6,12 +6,15 @@
 // across upgrades (e.g. Homebrew repointing its symlink).
 const path = require("path");
 
-const MAP = { install: "install.js", uninstall: "uninstall.js", pulse: "pulse.js", stats: "pulse.js", hook: "hook.js", statusline: "statusline.js", set: "set.js" };
+const MAP = { install: "install.js", uninstall: "uninstall.js", pulse: "pulse.js", stats: "pulse.js", doctor: "doctor.js", global: "global.js", hook: "hook.js", statusline: "statusline.js", set: "set.js" };
 const HELP = `redline - time + token/$ budgets for Claude Code
 
   redline install      wire redline into Claude Code (statusline + hooks + /redline)
   redline uninstall    remove redline from Claude Code
   redline pulse        live budgets across sessions + how often you stayed on track
+  redline global 60%   fleet budget: every session lands softly as the shared window nears the ceiling
+  redline notify on    notify when a session enters the landing zone (off to disable)
+  redline doctor       check the wiring: hooks, statusline sensor, plan feed
   redline version
 
 Then, inside Claude Code, set a budget any time:  /redline 10m $5   ·   /redline off
@@ -23,6 +26,15 @@ if (sub === "version" || sub === "--version" || sub === "-v") {
   process.exit(0);
 }
 if (!sub || ["help", "--help", "-h"].includes(sub)) { console.log(HELP); process.exit(0); }
+if (sub === "notify") {
+  const fs = require("fs");
+  const lib = require(path.join(__dirname, "lib.js"));
+  const arg = process.argv[3];
+  if (arg === "on") { lib.ensureDir(); fs.writeFileSync(lib.notifyPath(), ""); console.log("redline: landing-zone notifications ON (LOW at 70%, RESERVE at 90%)."); }
+  else if (arg === "off") { try { fs.rmSync(lib.notifyPath()); } catch {} console.log("redline: notifications OFF."); }
+  else console.log("redline notify on|off  - currently " + (fs.existsSync(lib.notifyPath()) ? "ON" : "OFF"));
+  process.exit(0);
+}
 if (!MAP[sub]) { console.error("unknown command: " + sub + "\n\n" + HELP); process.exit(1); }
 process.argv.splice(2, 1); // drop subcommand so target scripts see their own args at [2..]
 require(path.join(__dirname, MAP[sub]));

@@ -39,7 +39,9 @@ Result: lands ~90–95%, under budget, with a complete deliverable.
 | time | hook computes from `set_at` | best-effort (see limits) |
 | `$` | `cost.total_cost_usd` | precise |
 | tokens | sum of transcript usage | precise |
-| plan `%` | `rate_limits` delta from baseline | precise |
+| plan `%` | `rate_limits.used_percentage` | precise |
+
+Plan `%` has two semantics. `/redline 80%` is an **absolute ceiling**: the fraction is `used_percentage / 80`, anchored to the window's current state - a half-burned plan shows half-burned from the first render, and a mid-session window reset frees budget back up. `/redline +10%` is a **relative allowance**: `(used_percentage - baseline) / 10`, measured from a baseline captured at set time (the original semantic).
 
 Whichever dimension is closest to its limit is the **binding constraint** - the single bar tracks it, tagged with its gauge.
 
@@ -57,7 +59,7 @@ One budget covers the whole session. Users never set per-subagent budgets.
 - **Token / $ / plan are the precise guarantee** - spend only accrues with work, and the lock catches it with reserve to spare.
 - **Wall-clock time is best-effort.** The clock advances while the model generates; the lock can only fire at a tool attempt or turn boundary. On realistic budgets (minutes) checkpoints are frequent enough to land cleanly under; on absurdly tight budgets (seconds, smaller than one turn) the clock can pass the line between checkpoints. A periodic statusline-driven time guard is on the roadmap.
 - **Statusline refresh caps at 1s** - Claude Code re-renders the statusline on events plus a `refreshInterval` whose minimum is 1 second; it cannot tick sub-second. For a live multi-session view (and a smoother display) run `redline pulse` in a split pane.
-- **Live $/token/plan need an interactive session** - the statusline (the sensor) doesn't render in headless `claude -p`, where only time is live.
+- **Live $/plan need an interactive session** - the statusline (the sensor) doesn't render in headless `claude -p`. Time always works, and **token budgets work headless too**: when the state snapshot is missing or stale, the hook sums the transcripts itself and enforces from that.
 
 ## Mirroring Anthropic's `taskBudget`
 
@@ -91,6 +93,21 @@ Mechanics: `UserPromptSubmit` stamps `turn_start`; `Stop` closes the turn, addin
 | **time** | wall-clock + active overshoot (above) | the only dimension affected by idle |
 | **$** | Claude Code's `cost.total_cost_usd` (statusline feed) | client-side **estimate**, session-wide (incl. subagents), only moves during turns. Not a bill - on Max it's API-equivalent. |
 | **tokens** | summed from transcripts (main + subagents) | redline's own count; independent of the `$` source |
-| **plan %** | `rate_limits.*.used_percentage` delta from baseline | five_hour or seven_day window |
+| **plan %** | `rate_limits.*.used_percentage` (absolute ceiling by default; `+N%` = delta from baseline) | five_hour or seven_day window; readings outside 0-100 are discarded (claude-code#52326 sends an epoch there when the window is empty) |
+
+## Fleet budget (`global.json`)
+
+`redline global 60%` writes one machine-wide ceiling on the shared plan window. Every session's hook reads it next to the session's own budget; the binding constraint is whichever fraction is higher, so a budget-less session still paces and locks against the fleet cap. Tiering, reserve locking, and prompt blocking all reuse the same reserve-landing model - the whole fleet lands softly, no session is killed. Two safeguards: the fraction needs a plan.json reading fresher than 15 minutes (a stale sensor must never lock anyone out), and session history stays session-scoped (`peak` excludes fleet pressure - the fleet running hot is not the session's overshoot).
+
+## Landing telemetry
+
+Two additions make "lands with the task done" measurable instead of assumed:
+
+- **Clean landings.** Every reserve-zone tool denial increments `denials` in session state. `clean = landed && denials == 0`: the model wrapped up voluntarily before the lock fired. Pulse reports the rate; the pacing prompts are tuned against it.
+- **Landing manifest.** From the LOW tier on, the ledger asks the model to end its final message with `LANDING: delivered <what>; cut <what>`. Hooks can't see responses, but `Stop` gets the transcript path, so it greps the last manifest line into state, and `retire` writes it to history. Pulse shows the most recent one - what the budget cost in scope, in the model's own words.
+
+## The plan-window sensor (`plan.json`)
+
+Every statusline render - budget or not - writes the latest `rate_limits` reading to `~/.claude/redline/plan.json`: `used_percentage` and `resets_at` per window, plus **observed tokens-per-1%** whenever an active plan budget has both a token delta and a window delta to divide. That one file powers three things Anthropic's usage page doesn't offer: `/redline 80%` echoes where your window sits (and warns if you're already past the ceiling), the no-budget statusline still shows `plan 52% ↺1:23`, and `redline pulse` reports what 1% of *your* plan costs in tokens. The ratio is an estimate - concurrent sessions share the window, and cache reads are weighted differently - so it's labelled `≈`.
 
 Money needs no idle handling: cost only accrues when a prompt is sent, so it never inflates between prompts.

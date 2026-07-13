@@ -21,7 +21,10 @@ function bar(frac, w = 20) {
   return s + C.gray + "·".repeat(Math.max(0, w - full - 1)) + C.reset;
 }
 
-function activeSessions(now) {
+function activeSessions(now, snap) {
+  // Which session is eating the plan: tokens spent / observed tokens-per-1% ≈ this
+  // session's share of the shared window. An estimate (cache reads weigh less), so ~.
+  const tpp = snap && snap.five_hour && snap.five_hour.tok_per_pct;
   let files = [];
   try { files = fs.readdirSync(lib.DIR); } catch {}
   const out = [];
@@ -37,7 +40,9 @@ function activeSessions(now) {
     if (cfg.duration_sec) dims.push("⏱ " + lib.fmtDuration(Math.max(0, cfg.duration_sec - lib.timeUsedSec(cfg, now, st.turn_start, st.overshoot_sec))) + " left");
     if (cfg.dollars) dims.push("💰 $" + Math.max(0, cfg.dollars - r.costUsd).toFixed(2) + " left");
     if (cfg.tokens) dims.push("🔤 " + lib.fmtTokens(Math.max(0, cfg.tokens - r.tokens)) + " left");
-    if (cfg.plan_pct != null && r.planNow != null && r.baselinePlan != null) dims.push("📊 " + Math.max(0, cfg.plan_pct - (r.planNow - r.baselinePlan)).toFixed(1) + "% left");
+    const pl = lib.planLeft(cfg, r.planNow, r.baselinePlan);
+    if (pl != null) dims.push("📊 " + Math.max(0, pl).toFixed(1) + "% left");
+    if (tpp && r.tokens) dims.push("~" + (r.tokens / tpp).toFixed(1) + "% of plan");
     const label = st.name || (st.cwd ? path.basename(st.cwd) : id.slice(0, 6));
     out.push({ label, overall, dims, fresh: st.ts ? now - st.ts < 300 : false });
   }
@@ -53,7 +58,28 @@ function render() {
   const now = Math.floor(Date.now() / 1000);
   const L = ["", "  " + C.bold + "redline · pulse" + C.reset, ""];
 
-  const sess = activeSessions(now);
+  // Plan window: the numbers Anthropic only shows as opaque percentages -
+  // where each window sits, when it resets, and what 1% costs in tokens (observed).
+  const snap = lib.readJSON(lib.planPath());
+  const snapFresh = snap && snap.ts && now - snap.ts < 24 * 3600 ? snap : null;
+  const g = lib.readJSON(lib.globalPath());
+  if (snapFresh) {
+    L.push("  " + C.dim + "PLAN WINDOW" + C.reset);
+    for (const [w, label] of [["five_hour", "5-hour"], ["seven_day", "7-day "]]) {
+      const p = snap[w]; if (!p) continue;
+      const capped = g && g.plan_pct != null && (g.plan_window || "five_hour") === w;
+      const frac = capped ? p.pct / g.plan_pct : p.pct / 100;
+      const c = col(frac);
+      const bits = [c + p.pct.toFixed(1) + "% used" + C.reset];
+      if (capped) bits.push("🌐 fleet cap " + g.plan_pct + "% (" + Math.round(frac * 100) + "% of it)");
+      if (p.resets_at) bits.push("resets in " + lib.fmtDuration(p.resets_at - now));
+      if (p.tok_per_pct) bits.push("1% ≈ " + lib.fmtTokens(p.tok_per_pct) + " tok");
+      L.push("    📊 " + label + " " + c + bar(frac) + C.reset + "  " + bits.join(C.dim + " · " + C.reset));
+    }
+    L.push("");
+  }
+
+  const sess = activeSessions(now, snapFresh);
   L.push("  " + C.dim + "ACTIVE BUDGETS" + C.reset);
   if (!sess.length) L.push("    " + C.dim + "none · set one in any session with /redline 10m $5" + C.reset);
   for (const s of sess) {
@@ -74,6 +100,13 @@ function render() {
     const over = h.length - landed;
     L.push("    " + C.green + C.bold + "🎯 " + landed + (landed === 1 ? " time" : " times") + C.reset + "  " + C.dim + "you set a time or money budget and finished inside it" + C.reset);
     L.push("    " + c + bar(rate / 100) + C.reset + "  " + C.dim + rate + "% of " + h.length + " sessions" + (over ? " · " + over + " ran over" : "") + C.reset);
+    const tracked = h.filter((r) => r.denials != null);
+    if (tracked.length) {
+      const clean = tracked.filter((r) => r.clean).length;
+      L.push("    " + C.dim + "🛬 clean landings (wrapped up before the lock fired): " + clean + "/" + tracked.length + C.reset);
+    }
+    const manifest = [...h].reverse().find((r) => r.landing);
+    if (manifest) L.push("    " + C.dim + "last landing: \"" + manifest.landing + "\"" + C.reset);
   }
   L.push("");
   if (!once) L.push("  " + C.dim + "refreshing · ctrl-c to exit" + C.reset);

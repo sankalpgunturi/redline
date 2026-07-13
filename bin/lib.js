@@ -10,29 +10,66 @@ const cfgPath = (id) => path.join(DIR, `${id}.json`);
 const statePath = (id) => path.join(DIR, `${id}.state.json`);
 const pendingPath = () => path.join(DIR, "pending.json");
 const historyPath = () => path.join(DIR, "history.jsonl");
+const planPath = () => path.join(DIR, "plan.json"); // global plan-window snapshot (latest sensor reading, any session)
+const globalPath = () => path.join(DIR, "global.json"); // machine-wide fleet budget (plan-window ceiling, all sessions)
+const notifyPath = () => path.join(DIR, "notify.on"); // marker file: tier-transition notifications enabled
 
 function readJSON(p) { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; } }
 function writeJSON(p, obj) { ensureDir(); fs.writeFileSync(p, JSON.stringify(obj, null, 2)); }
 function appendHistory(rec) { ensureDir(); fs.appendFileSync(historyPath(), JSON.stringify(rec) + "\n"); }
 
-function sumFile(p) {
-  let total = 0, data;
-  try { data = fs.readFileSync(p, "utf8"); } catch { return 0; }
+function sumFile(p, acc) {
+  let data;
+  try { data = fs.readFileSync(p, "utf8"); } catch { return; }
   for (const line of data.split("\n")) {
     if (!line.trim()) continue;
     let e; try { e = JSON.parse(line); } catch { continue; }
     const u = e.usage || (e.message && e.message.usage);
     if (!u) continue;
-    total += (u.input_tokens || 0) + (u.output_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
+    const nc = (u.input_tokens || 0) + (u.output_tokens || 0) + (u.cache_creation_input_tokens || 0);
+    acc.nc += nc; // non-cache: what the rate limiter actually weighs
+    acc.total += nc + (u.cache_read_input_tokens || 0);
   }
-  return total;
 }
+// Returns {total, nc}: total includes cache reads (redline's own token budgets count
+// them - they are real context volume); nc excludes them (for plan-% ratios, where
+// cache reads are nearly free against the limit and would inflate 1% to absurdity).
 function sumTranscriptTokens(transcriptPath) {
-  if (!transcriptPath) return 0;
-  let total = sumFile(transcriptPath);
+  const acc = { total: 0, nc: 0 };
+  if (!transcriptPath) return acc;
+  sumFile(transcriptPath, acc);
   const subDir = transcriptPath.replace(/\.jsonl$/, "") + "/subagents";
-  try { for (const f of fs.readdirSync(subDir)) if (f.endsWith(".jsonl")) total += sumFile(path.join(subDir, f)); } catch {}
-  return total;
+  try { for (const f of fs.readdirSync(subDir)) if (f.endsWith(".jsonl")) sumFile(path.join(subDir, f), acc); } catch {}
+  return acc;
+}
+
+// Last "LANDING: ..." line in the transcript's assistant messages - the model's own
+// manifest of what it delivered vs cut when it wrapped up under budget pressure.
+function lastLanding(transcriptPath) {
+  let data;
+  try { data = fs.readFileSync(transcriptPath, "utf8"); } catch { return null; }
+  let found = null;
+  for (const line of data.split("\n")) {
+    if (!line.includes("LANDING:")) continue;
+    let e; try { e = JSON.parse(line); } catch { continue; }
+    const msg = e.message || e;
+    if ((e.type || msg.role) !== "assistant" && msg.role !== "assistant") continue;
+    const blocks = Array.isArray(msg.content) ? msg.content : [{ text: String(msg.content || "") }];
+    for (const b of blocks) {
+      const m = typeof b.text === "string" && b.text.match(/LANDING:\s*(.+)/);
+      if (m) found = m[1].trim().slice(0, 200);
+    }
+  }
+  return found;
+}
+
+// Fleet budget fraction: the shared plan window against the machine-wide ceiling.
+// Needs a fresh sensor reading (any interactive session refreshes plan.json every
+// second); stale data must not lock anyone out, so > 15 min old means "no reading".
+function fleetFraction(g, snap, now) {
+  if (!g || g.plan_pct == null || !snap || !snap.ts || now - snap.ts > 900) return null;
+  const p = snap[g.plan_window || "five_hour"];
+  return p ? p.pct / g.plan_pct : null;
 }
 
 // Effective time used. Wall-clock UP TO the deadline (counts reading/thinking/idle,
@@ -49,14 +86,41 @@ function timeUsedSec(cfg, now, turnStart, overshootSec) {
   return cfg.duration_sec + over;
 }
 
+// Plan % budgets have two semantics:
+// - ceiling (default): "stop when the window hits N% used" - anchored to the plan's
+//   CURRENT state, so a half-burned window shows up half-burned from the first render.
+// - allowance (plan_rel, set with +N%): "spend N more points from the set-time baseline".
+// Returns budget-% remaining under either semantic, or null until the sensor has data.
+function planLeft(cfg, planNow, baselinePlan) {
+  if (cfg.plan_pct == null || planNow == null) return null;
+  if (cfg.plan_rel) return baselinePlan == null ? null : cfg.plan_pct - (planNow - baselinePlan);
+  return cfg.plan_pct - planNow;
+}
+
 function fractions(cfg, now, r = {}) {
   const f = {};
   if (cfg.duration_sec) f.time = timeUsedSec(cfg, now, r.turnStart, r.overshootSec) / cfg.duration_sec;
   if (cfg.dollars) f.cost = (r.costUsd || 0) / cfg.dollars;
   if (cfg.tokens) f.tokens = (r.tokens || 0) / cfg.tokens;
-  if (cfg.plan_pct != null && r.planNow != null && r.baselinePlan != null) f.plan = (r.planNow - r.baselinePlan) / cfg.plan_pct;
+  const pl = planLeft(cfg, r.planNow, r.baselinePlan);
+  if (pl != null) f.plan = Math.max(0, (cfg.plan_pct - pl) / cfg.plan_pct); // never negative when the window slides back down
   const vals = Object.values(f).filter((v) => Number.isFinite(v));
   return { f, overall: vals.length ? Math.max(...vals) : 0 };
+}
+
+// Median burn across finished sessions (history.jsonl), for the set-time forecast.
+// null until there are 3 usable sessions - no forecast beats a made-up one.
+function typicalBurn() {
+  let recs = [];
+  try { recs = fs.readFileSync(historyPath(), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)); } catch {}
+  const ok = recs.filter((r) => r.final && r.final.elapsed_sec > 60);
+  if (ok.length < 3) return null;
+  const med = (a) => { const s = a.filter((x) => Number.isFinite(x) && x > 0).sort((x, y) => x - y); return s.length ? s[(s.length - 1) >> 1] : null; };
+  return {
+    n: ok.length,
+    tokMin: med(ok.map((r) => r.final.tokens / (r.final.elapsed_sec / 60))),
+    usdMin: med(ok.map((r) => r.final.cost_usd / (r.final.elapsed_sec / 60))),
+  };
 }
 
 function burnRate(st, cfg, now) {
@@ -77,7 +141,9 @@ function tokensLeft(cfg, st, now) {
   }
   if (cfg.plan_pct != null && st.plan_now != null && st.baseline_plan != null) {
     const planUsed = st.plan_now - st.baseline_plan;
-    if (planUsed > 0 && used > 0) cands.push((cfg.plan_pct - planUsed) * (used / planUsed));
+    const usedSince = used - (st.baseline_tokens || 0); // same span as planUsed, so the tok/% ratio is honest
+    const left = planLeft(cfg, st.plan_now, st.baseline_plan);
+    if (planUsed > 0 && usedSince > 0 && left != null) cands.push(left * (usedSince / planUsed));
   }
   const valid = cands.filter((x) => Number.isFinite(x));
   return valid.length ? Math.max(0, Math.round(Math.min(...valid))) : null;
@@ -93,10 +159,13 @@ function retire(cfg, st, now, reason) {
   if (peak <= 0.001 && elapsed < 10) return null;
   const rec = {
     ts: now, session: cfg.session_id || null, reason,
-    budget: { duration_sec: cfg.duration_sec || null, dollars: cfg.dollars || null, tokens: cfg.tokens || null, plan_pct: cfg.plan_pct ?? null },
+    budget: { duration_sec: cfg.duration_sec || null, dollars: cfg.dollars || null, tokens: cfg.tokens || null, plan_pct: cfg.plan_pct ?? null, plan_rel: cfg.plan_rel ? true : undefined },
     peak: round2(peak),
     final: { overall: round2(overall), cost_usd: round2(r.costUsd), tokens: r.tokens, elapsed_sec: elapsed },
     landed: peak <= 1.0, overshoot_pct: Math.max(0, Math.round((peak - 1) * 100)),
+    denials: st.denials || 0,               // reserve-zone tool blocks: 0 = the model wrapped up on its own
+    clean: peak <= 1.0 && !(st.denials || 0), // landed without the lock ever firing
+    landing: st.landing || undefined,       // the model's own "delivered X; cut Y" manifest
   };
   appendHistory(rec);
   return rec;
@@ -115,6 +184,6 @@ function fmtTokens(n) {
 }
 
 module.exports = {
-  DIR, ensureDir, cfgPath, statePath, pendingPath, historyPath, readJSON, writeJSON, appendHistory,
-  sumTranscriptTokens, timeUsedSec, fractions, burnRate, tokensLeft, retire, round2, fmtDuration, fmtTokens,
+  DIR, ensureDir, cfgPath, statePath, pendingPath, historyPath, planPath, globalPath, notifyPath, readJSON, writeJSON, appendHistory,
+  sumTranscriptTokens, lastLanding, fleetFraction, timeUsedSec, planLeft, fractions, burnRate, typicalBurn, tokensLeft, retire, round2, fmtDuration, fmtTokens,
 };
